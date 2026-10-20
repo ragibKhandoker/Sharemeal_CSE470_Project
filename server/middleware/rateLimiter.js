@@ -40,7 +40,7 @@ const foodPostLimiter = rateLimit({
 
 const assistantLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
-  max: 20,
+  max: 60,
   standardHeaders: true,
   legacyHeaders: false,
   message: {

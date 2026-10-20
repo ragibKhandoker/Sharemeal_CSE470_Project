@@ -1,7 +1,7 @@
 import { API_BASE_URL } from '../utils/constants';
 
 export const receiverAssistantService = {
-  ask: async (messages, onChunk) => {
+  ask: async (messages, onChunk, { signal, page, onStatus } = {}) => {
     const token = sessionStorage.getItem('sharemeal_token') || localStorage.getItem('sharemeal_token');
     const response = await fetch(`${API_BASE_URL}/help-assistant/stream`, {
       method: 'POST',
@@ -9,7 +9,8 @@ export const receiverAssistantService = {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {})
       },
-      body: JSON.stringify({ messages })
+      body: JSON.stringify({ messages, page }),
+      signal
     });
 
     if (!response.ok) {
@@ -24,6 +25,7 @@ export const receiverAssistantService = {
     const decoder = new TextDecoder();
     let buffer = '';
     let answer = '';
+    let truncated = false;
 
     const processEvent = (eventText) => {
       const data = eventText
@@ -40,6 +42,8 @@ export const receiverAssistantService = {
         return;
       }
       if (event.error) throw new Error(event.error);
+      if (event.truncated) truncated = true;
+      if (event.status) onStatus?.(event.status);
       if (event.text) {
         answer += event.text;
         onChunk(event.text, answer);
@@ -60,7 +64,7 @@ export const receiverAssistantService = {
     if (!answer.trim()) {
       throw new Error('The AI assistant did not return an answer. Please try again.');
     }
-    return { answer };
+    return { answer, truncated };
   }
 };
 

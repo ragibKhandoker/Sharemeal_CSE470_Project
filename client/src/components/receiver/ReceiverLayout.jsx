@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL } from '../../utils/constants';
 import RequestThreadModal from './RequestThreadModal';
+import ShareMealHelpChatbot from '../common/ShareMealHelpChatbot';
 import '../../App.css';
 
 // Figma Receiver Vector Icons
@@ -654,6 +655,7 @@ export const ReceiverLayout = ({ children, title = 'Receiver Dashboard' }) => {
           onClose={() => setSelectedRequest(null)}
         />
       )}
+      <ShareMealHelpChatbot role="receiver" />
     </div>
   );
 };

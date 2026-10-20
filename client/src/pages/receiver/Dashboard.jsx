@@ -6,7 +6,6 @@ import { API_BASE_URL } from '../../utils/constants';
 import { getAnonymousMode, setAnonymousMode as persistAnonymousMode } from '../../services/receiverData';
 import authService from '../../services/authService';
 import CaptchaWidget from '../../components/common/CaptchaWidget';
-import ShareMealHelpChatbot from '../../components/common/ShareMealHelpChatbot';
 import './Dashboard.css';
 
 export const ReceiverDashboard = () => {
@@ -1074,7 +1073,6 @@ export const ReceiverDashboard = () => {
           </div>
         </div>
       )}
-      <ShareMealHelpChatbot role="receiver" />
     </ReceiverLayout>
   );
 };
