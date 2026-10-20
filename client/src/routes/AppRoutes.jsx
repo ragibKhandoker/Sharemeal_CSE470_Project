@@ -45,11 +45,13 @@ import ReceiverRequests from '../pages/ngo/ReceiverRequests';
 import NgoReports from '../pages/ngo/Reports';
 import NgoProfile from '../pages/ngo/Profile';
 import BlogManagement from '../pages/ngo/BlogManagement';
+import NgoPayments from '../pages/ngo/Payments';
 
 // Receiver Pages
 import ReceiverDashboard from '../pages/receiver/Dashboard';
 import ReceiverFindFood from '../pages/receiver/FindFood';
 import CartWishlist from '../pages/receiver/CartWishlist';
+import ReceiverWallet from '../pages/receiver/Wallet';
 import MyRequests from '../pages/receiver/MyRequests';
 import RequestDetail from '../pages/receiver/RequestDetail';
 import ReceiverHistory from '../pages/receiver/History';
@@ -141,6 +143,7 @@ export const AppRoutes = () => {
       <Route path="/ngo/requests" element={<ProtectedRoute allowedRoles={['ngo']}><ReceiverRequests /></ProtectedRoute>} />
       <Route path="/ngo/receiver-requests" element={<ProtectedRoute allowedRoles={['ngo']}><ReceiverRequests /></ProtectedRoute>} />
       <Route path="/ngo/staff-requests" element={<ProtectedRoute allowedRoles={['ngo']}><ReceiverRequests /></ProtectedRoute>} />
+      <Route path="/ngo/payments" element={<ProtectedRoute allowedRoles={['ngo']}><NgoPayments /></ProtectedRoute>} />
       <Route path="/ngo/reports" element={<ProtectedRoute allowedRoles={['ngo']}><NgoReports /></ProtectedRoute>} />
       <Route path="/ngo/blogs" element={<ProtectedRoute allowedRoles={['ngo', 'admin', 'super_admin']}><BlogManagement /></ProtectedRoute>} />
       <Route path="/ngo/profile" element={<ProtectedRoute allowedRoles={['ngo']}><NgoProfile /></ProtectedRoute>} />
@@ -149,6 +152,7 @@ export const AppRoutes = () => {
       <Route path="/receiver/dashboard" element={<ProtectedRoute allowedRoles={['receiver']}><ReceiverDashboard /></ProtectedRoute>} />
       <Route path="/receiver/find-food" element={<ProtectedRoute allowedRoles={['receiver']}><ReceiverFindFood /></ProtectedRoute>} />
       <Route path="/receiver/cart" element={<ProtectedRoute allowedRoles={['receiver']}><CartWishlist /></ProtectedRoute>} />
+      <Route path="/receiver/wallet" element={<ProtectedRoute allowedRoles={['receiver']}><ReceiverWallet /></ProtectedRoute>} />
       <Route path="/receiver/my-requests" element={<ProtectedRoute allowedRoles={['receiver']}><MyRequests /></ProtectedRoute>} />
       <Route path="/receiver/requests/:id" element={<ProtectedRoute allowedRoles={['receiver']}><RequestDetail /></ProtectedRoute>} />
       <Route path="/receiver/history" element={<ProtectedRoute allowedRoles={['receiver']}><ReceiverHistory /></ProtectedRoute>} />

@@ -6,7 +6,7 @@ export const TrendingFoodSection = ({ posts = [], loading = false }) => {
 
   return (
     <section style={{ padding: '40px 24px 90px', background: '#fdf9f6' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ maxWidth: '1600px', margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '40px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--brand-primary-dark)', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.2px', marginBottom: '8px' }}>
@@ -34,12 +34,15 @@ export const TrendingFoodSection = ({ posts = [], loading = false }) => {
             </div>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '22px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '22px' }}>
             {posts.map((post) => (
               <div
                 key={post.id}
                 className="food-card"
                 style={{
+                  flex: '0 1 calc((100% - 66px) / 4)',
+                  minWidth: 'min(100%, 280px)',
+                  maxWidth: '380px',
                   background: '#ffffff',
                   borderRadius: '20px',
                   overflow: 'hidden',

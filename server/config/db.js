@@ -97,6 +97,8 @@ const initializeDatabase = async () => {
       ADD COLUMN IF NOT EXISTS receiver_price_bdt NUMERIC(12, 2) NOT NULL DEFAULT 0`);
     await query(`ALTER TABLE public.food_requests
       ADD COLUMN IF NOT EXISTS purchase_price_bdt NUMERIC(12, 2) NOT NULL DEFAULT 0`);
+    await query(`ALTER TABLE public.serving_logs
+      ADD COLUMN IF NOT EXISTS donation_ref TEXT`);
     await query(`
       CREATE TABLE IF NOT EXISTS public.receiver_cart_items (
         id BIGSERIAL PRIMARY KEY,

@@ -59,6 +59,12 @@ const NgoIcons = {
       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
     </svg>
   ),
+  Payments: ({ color = "currentColor" }) => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <line x1="2" y1="10" x2="22" y2="10" />
+    </svg>
+  ),
   Reports: ({ color = "currentColor" }) => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="18" y1="20" x2="18" y2="10" />
@@ -192,6 +198,7 @@ export const NgoLayout = ({ children, title = 'NGO Dashboard' }) => {
     { label: 'Pickup Points', path: '/ngo/pickup-points', IconComponent: NgoIcons.PickupPoints, roles: ['admin', 'receiving_staff', 'distributor_staff'] },
     { label: 'Receiver Requests', path: '/ngo/requests', IconComponent: NgoIcons.Requests, roles: ['admin', 'distributor_staff'] },
     { label: 'Serving Log', path: '/ngo/serving-log', IconComponent: NgoIcons.ServingLog, roles: ['admin', 'distributor_staff'] },
+    { label: 'Payments', path: '/ngo/payments', IconComponent: NgoIcons.Payments, roles: ['admin'] },
     { label: 'Reports', path: '/ngo/reports', IconComponent: NgoIcons.Reports, roles: ['admin'] },
     { label: 'Home Blog & Stories', path: '/ngo/blogs', IconComponent: NgoIcons.Blog, roles: ['admin'] },
     { label: 'Profile', path: '/ngo/profile', IconComponent: NgoIcons.Profile, roles: ['admin', 'receiving_staff', 'distributor_staff'] }

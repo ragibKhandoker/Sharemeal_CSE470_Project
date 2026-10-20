@@ -158,6 +158,25 @@ export const MyDonations = () => {
 
   useEffect(() => {
     fetchPickupRequests();
+
+    if (!token) return undefined;
+
+    // NGO requests can arrive while the donor already has My Donations open.
+    // Refresh when they return to the tab and periodically while it is visible.
+    const refreshOnFocus = () => {
+      if (document.visibilityState === 'visible') fetchPickupRequests();
+    };
+    const refreshTimer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') fetchPickupRequests();
+    }, 10000);
+    window.addEventListener('focus', refreshOnFocus);
+    document.addEventListener('visibilitychange', refreshOnFocus);
+
+    return () => {
+      window.clearInterval(refreshTimer);
+      window.removeEventListener('focus', refreshOnFocus);
+      document.removeEventListener('visibilitychange', refreshOnFocus);
+    };
   }, [token]);
 
   const handlePickupRespond = async (requestId, action) => {

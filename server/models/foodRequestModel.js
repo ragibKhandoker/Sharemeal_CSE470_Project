@@ -100,7 +100,7 @@ const findById = async (id) => {
       fp.food_name,
       fp.title AS food_title,
       fp.food_type,
-      fp.quantity AS post_quantity,
+      fp.quantity::integer AS post_quantity,
       fp.district,
       fp.thana,
       fp.area_ward,
@@ -137,7 +137,7 @@ const findByReceiverId = async (receiverId) => {
       fp.food_name,
       fp.title AS food_title,
       fp.food_type,
-      fp.quantity AS post_quantity,
+      fp.quantity::integer AS post_quantity,
       fp.district,
       fp.thana,
       fp.area_ward,
@@ -202,7 +202,7 @@ const findIncomingForNgo = async (ngoUserId) => {
       fp.status AS post_status,
       fp.donor_id,
       fp.image_url AS food_image_url,
-      fp.quantity AS post_quantity,
+      fp.quantity::integer AS post_quantity,
       fp.distribution_ngo_user_id,
       COALESCE(
         (SELECT fr_ngo.remaining_packets 
@@ -210,7 +210,7 @@ const findIncomingForNgo = async (ngoUserId) => {
          WHERE fr_ngo.food_post_id = fr.food_post_id 
            AND fr_ngo.remaining_packets IS NOT NULL 
          ORDER BY fr_ngo.created_at DESC LIMIT 1),
-        fp.quantity
+        fp.quantity::integer
       ) AS remaining_packets,
       CASE 
         WHEN fr.is_anonymous = true THEN '🕵️ Anonymous Receiver'
@@ -247,7 +247,7 @@ const findPickupRequestsForDonor = async (donorId) => {
       fp.district,
       fp.thana,
       fp.area_ward,
-      fp.quantity AS post_quantity,
+      fp.quantity::integer AS post_quantity,
       fp.image_url AS food_image_url,
       u.name AS requester_name,
       u.email AS requester_email,
@@ -278,7 +278,7 @@ const findPickupRequestsByNgo = async (ngoUserId) => {
       fp.district,
       fp.thana,
       fp.area_ward,
-      fp.quantity AS post_quantity,
+      fp.quantity::integer AS post_quantity,
       fp.image_url AS food_image_url,
       fp.status AS food_post_status,
       d.name AS donor_name,
@@ -473,7 +473,7 @@ const findByPickupCode = async (pickupCode) => {
       fp.food_name,
       fp.title AS food_title,
       fp.food_type,
-      fp.quantity AS post_quantity,
+      fp.quantity::integer AS post_quantity,
       fp.donor_id,
       u.name AS receiver_name,
       u.phone AS receiver_phone

@@ -1,4 +1,3 @@
-
 {
   "name": "sharemeal-server",
   "version": "1.0.0",
@@ -11,7 +10,10 @@
     "migrate:nid-document": "node scripts/apply-migration.js 021_store_nid_documents_as_bytea.sql",
     "migrate:ngo-registration": "node scripts/apply-migration.js 022_align_ngo_registration_schema.sql",
     "migrate:pickup-point-address": "node scripts/apply-migration.js 023_add_pickup_point_address.sql",
-    "migrate:receiver-commerce": "node scripts/apply-migration.js 032_receiver_cart_wishlist.sql"
+    "migrate:receiver-commerce": "node scripts/apply-migration.js 032_receiver_cart_wishlist.sql",
+    "migrate:wallet": "node scripts/apply-migration.js 035_receiver_wallet.sql",
+    "migrate:serving-log-ref": "node scripts/apply-migration.js 036_add_serving_log_donation_ref.sql",
+    "test:wallet": "node scripts/test-wallet.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",

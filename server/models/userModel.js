@@ -139,6 +139,24 @@ const deleteUserById = async (id) => {
   const client = await db.pool.connect();
   try {
     await client.query('BEGIN');
+
+    // Wallet money records are an audit trail and must outlive the account.
+    const walletTables = await client.query("SELECT to_regclass('public.wallet_accounts') IS NOT NULL AS ready");
+    if (walletTables.rows[0].ready) {
+      const history = await client.query(
+        `SELECT EXISTS (SELECT 1 FROM wallet_transactions WHERE user_id = $1)
+             OR EXISTS (SELECT 1 FROM wallet_topups WHERE user_id = $1)
+             OR EXISTS (SELECT 1 FROM ngo_payments WHERE receiver_id = $1 OR ngo_user_id = $1) AS has_history`,
+        [id]
+      );
+      if (history.rows[0].has_history) {
+        const error = new Error('This account has wallet payment records, which must be kept for auditing, so it cannot be deleted.');
+        error.statusCode = 409;
+        throw error;
+      }
+      await client.query('DELETE FROM wallet_accounts WHERE user_id = $1', [id]);
+    }
+
     await client.query(
       'DELETE FROM ratings WHERE author_id = $1 OR target_user_id = $1',
       [id]

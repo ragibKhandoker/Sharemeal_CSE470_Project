@@ -171,7 +171,7 @@ export const CollectionRequests = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ staff_id: selectedStaffId })
+        body: JSON.stringify({ staff_id: parseInt(selectedStaffId, 10) })
       });
       if (res.ok) {
         showToast('🚚 Receiving staff assigned successfully!');
@@ -201,7 +201,7 @@ export const CollectionRequests = () => {
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          staff_id: pickupModalItem?.assigned_staff_id || user?.id
+          staff_id: parseInt(pickupModalItem?.assigned_staff_id || user?.id, 10)
         })
       });
       if (res.ok) {
@@ -232,7 +232,7 @@ export const CollectionRequests = () => {
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          staff_id: selectedHubStaffId || user?.id
+          staff_id: parseInt(selectedHubStaffId || user?.id, 10)
         })
       });
       if (res.ok) {
@@ -467,6 +467,13 @@ export const CollectionRequests = () => {
   const isNgoAdmin = !user?.ngo_staff_role || user?.ngo_staff_role === 'admin';
   const isReceivingStaff = user?.ngo_staff_role === 'receiving_staff' || isNgoAdmin;
   const isDistributorStaff = user?.ngo_staff_role === 'distributor_staff' || isNgoAdmin;
+  const receivingStaff = staffList.filter((staff) =>
+    !staff.ngo_staff_role || staff.ngo_staff_role === 'receiving_staff'
+  );
+  // Let an NGO administrator handle pickup when no receiving staff are available.
+  if (isNgoAdmin && user?.id && !receivingStaff.some((staff) => String(staff.id) === String(user.id))) {
+    receivingStaff.unshift({ ...user, ngo_staff_role: 'admin' });
+  }
 
   return (
     <NgoLayout title="Collection Requests">

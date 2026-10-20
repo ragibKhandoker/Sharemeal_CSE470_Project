@@ -49,8 +49,23 @@ const assistantLimiter = rateLimit({
   }
 });
 
+/**
+ * Limiter for wallet operations that create or move money
+ */
+const walletLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    status: 429,
+    message: 'Too many wallet requests. Please wait a few minutes and try again.'
+  }
+});
+
 module.exports = {
   apiLimiter,
+  walletLimiter,
   authLimiter,
   signupLimiter: authLimiter,
   loginLimiter: authLimiter,
