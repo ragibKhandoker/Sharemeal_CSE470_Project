@@ -923,7 +923,7 @@ export const MyDonations = () => {
                   })()}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, margin: '16px 0', background: '#faf6f3', padding: '16px', borderRadius: '14px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14, margin: '16px 0', background: '#faf6f3', padding: '16px', borderRadius: '14px' }}>
                   <div>
                     <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#8c7e77', fontWeight: 600 }}>Quantity</div>
                     <div style={{ fontSize: '15px', fontWeight: 700, color: '#2c2320' }}>

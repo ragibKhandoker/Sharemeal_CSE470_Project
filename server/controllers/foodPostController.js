@@ -233,7 +233,7 @@ const getDonorPosts = async (req, res) => {
       try {
         const jwt = require('jsonwebtoken');
         const decoded = jwt.verify(req.headers.authorization.split(' ')[1], process.env.JWT_SECRET || 'default_secret');
-        ngoUserId = decoded.id;
+        if (!decoded.pcr) ngoUserId = decoded.id; // ignore temporary-password sessions
       } catch (e) {}
     }
     if (!ngoUserId && req.query.ngo_id) {

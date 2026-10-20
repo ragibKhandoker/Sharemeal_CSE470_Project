@@ -108,7 +108,6 @@ export const AdminLayout = ({ children, title = 'Users & Staff' }) => {
   const [loadingData, setLoadingData] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [otpSentMsg, setOtpSentMsg] = useState('');
-  const [otpLoading, setOtpLoading] = useState(false);
 
   const fetchAdminData = async () => {
     if (!token) return;
@@ -189,69 +188,6 @@ export const AdminLayout = ({ children, title = 'Users & Staff' }) => {
   };
 
   const unreadCount = notifications.filter((n) => n.unread).length;
-  const [profileOtpStep, setProfileOtpStep] = useState(1);
-  const [profileOtpCode, setProfileOtpCode] = useState('');
-  const [profileNewPassword, setProfileNewPassword] = useState('');
-  const [profileOtpMsg, setProfileOtpMsg] = useState('');
-  const [profileOtpErr, setProfileOtpErr] = useState('');
-  const [profilePreviewUrl, setProfilePreviewUrl] = useState(null);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-
-  const handleForgotPasswordClick = async () => {
-    setOtpLoading(true);
-    setProfileOtpMsg('');
-    setProfileOtpErr('');
-    setProfilePreviewUrl(null);
-    const adminEmail = user?.email || 'admin@sharemeal.org';
-    try {
-      const res = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: adminEmail })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to send OTP');
-      setProfileOtpCode('');
-      setProfileOtpMsg(`✉️ 6-digit OTP code sent to ${adminEmail}. Please check your email inbox and enter the code below.`);
-      if (data.previewUrl) setProfilePreviewUrl(data.previewUrl);
-      setProfileOtpStep(2);
-    } catch (err) {
-      setProfileOtpErr(`❌ ${err.message}`);
-    } finally {
-      setOtpLoading(false);
-    }
-  };
-
-  const handleProfileResetPassword = async (e) => {
-    e.preventDefault();
-    setOtpLoading(true);
-    setProfileOtpMsg('');
-    setProfileOtpErr('');
-    const adminEmail = user?.email || 'admin@sharemeal.org';
-    try {
-      const res = await fetch(`${API_BASE_URL}/auth/reset-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: adminEmail,
-          otp: profileOtpCode,
-          newPassword: profileNewPassword
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to reset password');
-      setShowProfileModal(false);
-      setShowSuccessModal(true);
-      setProfileOtpStep(1);
-      setProfileOtpCode('');
-      setProfileNewPassword('');
-    } catch (err) {
-      setProfileOtpErr(`❌ ${err.message}`);
-    } finally {
-      setOtpLoading(false);
-    }
-  };
-
   const navItems = [
     { label: 'Home', path: '/admin/dashboard', IconComponent: Icons.Home },
     { label: 'Users', path: '/admin/users', IconComponent: Icons.Users },
@@ -274,21 +210,42 @@ export const AdminLayout = ({ children, title = 'Users & Staff' }) => {
 
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
+  // Mobile drawer: close on Esc or when the window grows to desktop width,
+  // and stop the page behind it from scrolling while it is open.
+  useEffect(() => {
+    if (!isMobileOpen) return undefined;
+    const onKey = (event) => { if (event.key === 'Escape') setIsMobileOpen(false); };
+    const desktop = window.matchMedia('(min-width: 769px)');
+    const onResize = (event) => { if (event.matches) setIsMobileOpen(false); };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', onKey);
+    desktop.addEventListener('change', onResize);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', onKey);
+      desktop.removeEventListener('change', onResize);
+    };
+  }, [isMobileOpen]);
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <style>{`
         @media (max-width: 768px) {
           .admin-sidebar {
             position: fixed !important;
-            left: -256px;
-            transition: left 0.3s ease-in-out;
-            z-index: 2000;
+            left: -272px !important;
+            visibility: hidden;
+            transition: left 0.3s ease-in-out, visibility 0.3s;
+            z-index: 2000 !important;
           }
           .admin-main-viewport {
             margin-left: 0 !important;
           }
           .admin-sidebar.open {
             left: 0 !important;
+            visibility: visible;
+            box-shadow: 8px 0 24px rgba(0, 0, 0, 0.25);
           }
           .admin-mobile-hamburger {
             display: flex !important;
@@ -1149,97 +1106,14 @@ export const AdminLayout = ({ children, title = 'Users & Staff' }) => {
               </button>
             </div>
 
-            {/* Forget Password Form */}
+            {/* Password reset: admin-assisted */}
             <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '12px', padding: '14px 16px', marginBottom: '16px' }}>
               <div style={{ fontSize: '13px', fontWeight: 700, color: '#9a3412', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                🔑 Password Recovery via OTP
+                🔑 Forgot your password?
               </div>
-
-              {profileOtpMsg && (
-                <div style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: 10, borderRadius: 8, fontSize: 12, marginBottom: 10, fontWeight: 600 }}>
-                  {profileOtpMsg}
-                  {profilePreviewUrl && (
-                    <div style={{ marginTop: 6 }}>
-                      <a href={profilePreviewUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#ea580c', textDecoration: 'underline', fontWeight: 700 }}>
-                        📩 Click here to open sent email preview (Simulated Inbox) →
-                      </a>
-                    </div>
-                  )}
-                </div>
-              )}
-              {profileOtpErr && <div style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', padding: 10, borderRadius: 8, fontSize: 12, marginBottom: 10, fontWeight: 600 }}>{profileOtpErr}</div>}
-
-              {profileOtpStep === 1 ? (
-                <div>
-                  <p style={{ fontSize: '12px', color: '#7c2d12', margin: '0 0 10px' }}>
-                    Generate a 6-digit OTP reset code for your super admin account.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleForgotPasswordClick}
-                    disabled={otpLoading}
-                    style={{
-                      width: '100%',
-                      background: '#ea580c',
-                      color: '#ffffff',
-                      border: 0,
-                      borderRadius: '8px',
-                      padding: '9px 14px',
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {otpLoading ? 'Generating OTP...' : '🔑 Generate OTP Code'}
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={handleProfileResetPassword} style={{ display: 'grid', gap: '10px' }}>
-                  <div>
-                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#9a3412', display: 'block', marginBottom: 4 }}>
-                      6-DIGIT OTP CODE
-                    </label>
-                    <input
-                      type="text"
-                      value={profileOtpCode}
-                      onChange={(e) => setProfileOtpCode(e.target.value)}
-                      required
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #fdba74', fontSize: '13px', background: '#ffffff', outline: 'none', fontWeight: 700, letterSpacing: 2, textAlign: 'center' }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#9a3412', display: 'block', marginBottom: 4 }}>
-                      ENTER NEW PASSWORD
-                    </label>
-                    <input
-                      type="password"
-                      placeholder="Enter new password"
-                      value={profileNewPassword}
-                      onChange={(e) => setProfileNewPassword(e.target.value)}
-                      required
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #fdba74', fontSize: '13px', background: '#ffffff', outline: 'none' }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      type="button"
-                      onClick={() => setProfileOtpStep(1)}
-                      style={{ background: '#f3f4f6', color: '#374151', border: 0, borderRadius: '8px', padding: '8px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
-                    >
-                      ← Back
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={otpLoading}
-                      style={{ flex: 1, background: '#10b981', color: '#ffffff', border: 0, borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
-                    >
-                      {otpLoading ? 'Updating Password...' : 'Confirm & Set New Password →'}
-                    </button>
-                  </div>
-                </form>
-              )}
+              <p style={{ fontSize: '12px', color: '#7c2d12', margin: 0, lineHeight: 1.5 }}>
+                Use <strong>Request Password Reset</strong> on the login page. Another Super Admin approves it and gives you a temporary password; you then set a new one. Admins cannot approve their own requests.
+              </p>
             </div>
 
             {/* Close Button */}
@@ -1257,27 +1131,6 @@ export const AdminLayout = ({ children, title = 'Users & Staff' }) => {
         </div>
       )}
 
-      {/* Password Changed Success Popup Modal */}
-      {showSuccessModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', zIndex: 4000 }}>
-          <div style={{ width: '100%', maxWidth: '420px', background: '#ffffff', borderRadius: '24px', padding: '32px 28px', textAlign: 'center', boxShadow: '0 25px 60px rgba(0,0,0,0.3)', border: '1px solid #e5e7eb' }}>
-            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#d1fae5', color: '#059669', fontSize: 32, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 8px 20px rgba(5,150,105,0.25)' }}>
-              ✓
-            </div>
-            <h3 style={{ margin: '0 0 8px', fontSize: '20px', fontWeight: 800, color: '#111827' }}>Password Changed!</h3>
-            <p style={{ margin: '0 0 24px', fontSize: '13px', color: '#4b5563', lineHeight: '20px' }}>
-              Your Super Admin password has been updated successfully. You can now use your new password to log into your account.
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowSuccessModal(false)}
-              style={{ width: '100%', background: '#10b981', color: '#ffffff', border: 0, borderRadius: '12px', padding: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(16,185,129,0.3)' }}
-            >
-              Great, Thank You!
-            </button>
-          </div>
-        </div>
-      )}
       <ShareMealHelpChatbot role="admin" />
     </div>
   );

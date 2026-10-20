@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import TempPasswordModal from '../../components/admin/TempPasswordModal';
+import SendResetMessageModal from '../../components/admin/SendResetMessageModal';
 import { API_BASE_URL } from '../../utils/constants';
 import messageService from '../../services/messageService';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -15,7 +17,6 @@ export const AdminUsers = () => {
   const [activeTab, setActiveTab] = useState('users');
   const [passwordRequests, setPasswordRequests] = useState([]);
   const [pwActionLoading, setPwActionLoading] = useState(null);
-  const [copiedLink, setCopiedLink] = useState('');
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +26,9 @@ export const AdminUsers = () => {
 
   // Selected User Profile Pop-up Modal state
   const [selectedUser, setSelectedUser] = useState(null);
-  const [adminNewPassword, setAdminNewPassword] = useState('');
+  const [tempPasswordResult, setTempPasswordResult] = useState(null);
+  // { request, regenerate } while the approve / resend dialog is open
+  const [messageDialog, setMessageDialog] = useState(null);
   const [passwordResetStatus, setPasswordResetStatus] = useState('');
   const [passwordResetLoading, setPasswordResetLoading] = useState(false);
   const [userMessageText, setUserMessageText] = useState('');
@@ -129,20 +132,25 @@ export const AdminUsers = () => {
     }
   }, [location.search, users, selectedUser?.id]);
 
-  const handleApprovePasswordRequest = async (requestId) => {
+  // Approve a pending request, or replace the temporary password of an approved one.
+  const handleApprovePasswordRequest = async (requestId, regenerate = false, note = '') => {
     setPwActionLoading(requestId);
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/password-requests/${requestId}/approve`, {
+      const res = await fetch(`${API_BASE_URL}/admin/password-requests/${requestId}/${regenerate ? 'regenerate' : 'approve'}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
-        }
+        },
+        body: JSON.stringify({ note })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Approval failed');
 
-      setStatusMsg(`✅ Password reset link generated & delivered to user notification panel!`);
+      setMessageDialog(null);
+      // Sealed messages never reveal the password; older requests show it once.
+      if (!data.messageSent) setTempPasswordResult(data);
+      setStatusMsg(`✅ ${data.message}`);
       await fetchPasswordRequests();
     } catch (err) {
       alert(err.message || 'Failed to approve request');
@@ -175,12 +183,6 @@ export const AdminUsers = () => {
     }
   };
 
-  const handleCopyLink = (link) => {
-    const fullUrl = `${window.location.origin}${link}`;
-    navigator.clipboard.writeText(fullUrl);
-    setCopiedLink(link);
-    setTimeout(() => setCopiedLink(''), 2500);
-  };
 
   const handleVerify = async (userId, newStatus) => {
     try {
@@ -285,9 +287,9 @@ export const AdminUsers = () => {
     }
   };
 
-  const handleAdminResetPassword = async (e) => {
-    e.preventDefault();
-    if (!selectedUser || !adminNewPassword) return;
+  const handleAdminResetPassword = async () => {
+    if (!selectedUser || passwordResetLoading) return;
+    if (!window.confirm(`Create a temporary password for ${selectedUser.name}? Any earlier temporary password stops working.`)) return;
 
     setPasswordResetLoading(true);
     setPasswordResetStatus('');
@@ -298,16 +300,13 @@ export const AdminUsers = () => {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ newPassword: adminNewPassword })
+        }
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Password reset failed');
 
-      setPasswordResetStatus(`✅ Password updated to "${adminNewPassword}"!`);
-      setSelectedUser({ ...selectedUser, password: adminNewPassword });
-      setAdminNewPassword('');
-      await fetchUsers();
+      if (!data.messageSent) setTempPasswordResult(data);
+      setPasswordResetStatus(`✅ ${data.message}`);
     } catch (err) {
       setPasswordResetStatus(`❌ ${err.message}`);
     } finally {
@@ -502,7 +501,7 @@ export const AdminUsers = () => {
           }}
         >
           <div style={{ overflowX: 'auto', width: '100%' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <table style={{ width: '100%', minWidth: '860px', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
                 <tr
                   style={{
@@ -546,14 +545,14 @@ export const AdminUsers = () => {
                       onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
                     >
                       {/* Column 1: Name */}
-                      <td style={{ paddingLeft: '24px', verticalAlign: 'middle' }}>
-                        <div style={{ fontWeight: 600, fontSize: '14px', color: '#2c2320', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <td style={{ paddingLeft: '24px', paddingTop: '12px', paddingBottom: '12px', verticalAlign: 'middle' }}>
+                        <div title={user.name} style={{ maxWidth: '220px', fontWeight: 600, fontSize: '14px', color: '#2c2320', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {user.name}
                         </div>
                       </td>
 
                       {/* Column 2: Role Pill */}
-                      <td style={{ paddingLeft: '16px', verticalAlign: 'middle' }}>
+                      <td style={{ paddingLeft: '16px', paddingTop: '12px', paddingBottom: '12px', verticalAlign: 'middle' }}>
                         <span
                           style={{
                             background: user.role === 'admin' ? '#ffe9e2' : user.role === 'ngo' ? '#e3f5ea' : user.role === 'donor' ? '#ffe9e2' : '#fff2d6',
@@ -563,6 +562,7 @@ export const AdminUsers = () => {
                             fontSize: '12px',
                             fontWeight: 600,
                             display: 'inline-block',
+                            whiteSpace: 'nowrap',
                             textTransform: 'capitalize',
                             lineHeight: '16px'
                           }}
@@ -572,17 +572,19 @@ export const AdminUsers = () => {
                       </td>
 
                       {/* Column 3: Mobile */}
-                      <td style={{ paddingLeft: '16px', verticalAlign: 'middle', fontSize: '14px', color: '#6b5d56', whiteSpace: 'nowrap' }}>
+                      <td style={{ paddingLeft: '16px', paddingTop: '12px', paddingBottom: '12px', verticalAlign: 'middle', fontSize: '14px', color: '#6b5d56', whiteSpace: 'nowrap' }}>
                         {user.phone}
                       </td>
 
                       {/* Column 4: Email */}
-                      <td style={{ paddingLeft: '16px', verticalAlign: 'middle', fontSize: '14px', color: '#6b5d56', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {user.email || '—'}
+                      <td style={{ paddingLeft: '16px', paddingTop: '12px', paddingBottom: '12px', verticalAlign: 'middle', fontSize: '14px', color: '#6b5d56' }}>
+                        <div title={user.email || ''} style={{ maxWidth: '260px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {user.email || '—'}
+                        </div>
                       </td>
 
                       {/* Column 5: Status Pill */}
-                      <td style={{ paddingLeft: '16px', verticalAlign: 'middle' }}>
+                      <td style={{ paddingLeft: '16px', paddingTop: '12px', paddingBottom: '12px', verticalAlign: 'middle' }}>
                         <span
                           style={{
                             background: user.verification_status === 'verified' ? 'rgba(63, 185, 132, 0.14)' : 'rgba(245, 183, 62, 0.14)',
@@ -593,7 +595,8 @@ export const AdminUsers = () => {
                             fontWeight: 600,
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '6px'
+                            gap: '6px',
+                            whiteSpace: 'nowrap'
                           }}
                         >
                           <span
@@ -609,14 +612,13 @@ export const AdminUsers = () => {
                       </td>
 
                       {/* Column 6: Action Buttons */}
-                      <td style={{ paddingRight: '24px', verticalAlign: 'middle', textAlign: 'right' }}>
+                      <td style={{ paddingRight: '24px', paddingTop: '12px', paddingBottom: '12px', verticalAlign: 'middle', textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
                           <button
                             type="button"
                             onClick={() => {
                               setSelectedUser(user);
                               setPasswordResetStatus('');
-                              setAdminNewPassword('');
                             }}
                             style={{
                               background: 'transparent',
@@ -687,7 +689,7 @@ export const AdminUsers = () => {
               <span>🔑</span> In-App Password Reset Requests
             </h3>
             <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#6b5d56' }}>
-              Approve requests to deliver a secure password reset link directly into the user's notification channel.
+              Approve a request to send the user a one-time temporary message with a temporary password. Only the user can open it with their secret request code.
             </p>
           </div>
           <button
@@ -719,7 +721,7 @@ export const AdminUsers = () => {
           }}
         >
           <div style={{ overflowX: 'auto', width: '100%' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <table style={{ width: '100%', minWidth: '1100px', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
                 <tr
                   style={{
@@ -737,7 +739,7 @@ export const AdminUsers = () => {
                   <th style={{ paddingLeft: '16px', verticalAlign: 'middle' }}>Reason / Note</th>
                   <th style={{ paddingLeft: '16px', verticalAlign: 'middle' }}>Requested At</th>
                   <th style={{ paddingLeft: '16px', verticalAlign: 'middle' }}>Status</th>
-                  <th style={{ paddingRight: '24px', textAlign: 'right', verticalAlign: 'middle' }}>Action</th>
+                  <th style={{ paddingRight: '24px', textAlign: 'right', verticalAlign: 'middle', width: '280px' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -766,21 +768,22 @@ export const AdminUsers = () => {
                       <tr
                         key={req.id}
                         style={{
-                          height: '56px',
                           borderBottom: '1px solid rgba(44, 35, 32, 0.05)',
                           fontSize: '13px',
                           background: isPending ? '#fffdfb' : '#ffffff'
                         }}
                       >
-                        <td style={{ paddingLeft: '24px', verticalAlign: 'middle' }}>
+                        <td style={{ paddingLeft: '24px', paddingTop: '12px', paddingBottom: '12px', verticalAlign: 'middle' }}>
                           <strong style={{ color: '#2c2320' }}>{req.user_name}</strong>
-                          <div style={{ fontSize: '11px', color: '#888' }}>User #{req.user_id}</div>
+                          <div style={{ fontSize: '11px', color: '#888', marginTop: '2px', maxWidth: '220px', overflowWrap: 'anywhere', lineHeight: 1.4 }}>{req.user_email || 'No email'} · User #{req.user_id}</div>
                         </td>
-                        <td style={{ paddingLeft: '16px', verticalAlign: 'middle' }}>
+                        <td style={{ paddingLeft: '16px', paddingTop: '12px', paddingBottom: '12px', verticalAlign: 'middle' }}>
                           <span
                             style={{
                               background: roleBadgeColor.bg,
                               color: roleBadgeColor.color,
+                              display: 'inline-block',
+                              whiteSpace: 'nowrap',
                               padding: '3px 10px',
                               borderRadius: '8px',
                               fontSize: '11px',
@@ -791,22 +794,24 @@ export const AdminUsers = () => {
                             {req.user_role}
                           </span>
                         </td>
-                        <td style={{ paddingLeft: '16px', verticalAlign: 'middle' }}>
-                          <code style={{ background: '#f1f5f9', color: '#334155', padding: '3px 8px', borderRadius: '6px', fontSize: '12px' }}>
+                        <td style={{ paddingLeft: '16px', paddingTop: '12px', paddingBottom: '12px', verticalAlign: 'middle' }}>
+                          <code style={{ display: 'inline-block', maxWidth: '220px', overflowWrap: 'anywhere', lineHeight: 1.5, background: '#f1f5f9', color: '#334155', padding: '3px 8px', borderRadius: '6px', fontSize: '12px' }}>
                             {req.identifier}
                           </code>
                         </td>
-                        <td style={{ paddingLeft: '16px', verticalAlign: 'middle', maxWidth: '240px' }}>
-                          <span style={{ color: '#555', fontStyle: req.reason ? 'normal' : 'italic' }}>
+                        <td style={{ paddingLeft: '16px', paddingTop: '12px', paddingBottom: '12px', verticalAlign: 'middle', maxWidth: '240px' }}>
+                          <span style={{ display: 'block', color: '#555', lineHeight: 1.45, overflowWrap: 'anywhere', fontStyle: req.reason ? 'normal' : 'italic' }}>
                             {req.reason ? `"${req.reason}"` : 'None provided'}
                           </span>
                         </td>
-                        <td style={{ paddingLeft: '16px', verticalAlign: 'middle', color: '#6b5d56', fontSize: '12px' }}>
+                        <td style={{ paddingLeft: '16px', paddingTop: '12px', paddingBottom: '12px', verticalAlign: 'middle', color: '#6b5d56', fontSize: '12px', whiteSpace: 'nowrap' }}>
                           {req.requested_at ? new Date(req.requested_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Recent'}
                         </td>
-                        <td style={{ paddingLeft: '16px', verticalAlign: 'middle' }}>
+                        <td style={{ paddingLeft: '16px', paddingTop: '12px', paddingBottom: '12px', verticalAlign: 'middle' }}>
                           <span
                             style={{
+                              display: 'inline-block',
+                              whiteSpace: 'nowrap',
                               padding: '4px 10px',
                               borderRadius: '10px',
                               fontSize: '11px',
@@ -816,17 +821,17 @@ export const AdminUsers = () => {
                               border: '1px solid currentColor'
                             }}
                           >
-                            {isPending ? '⏳ Pending' : isApproved ? '✓ Link Sent' : isCompleted ? '✓ Completed' : '✕ Rejected'}
+                            {isPending ? '⏳ Pending' : isApproved ? '✓ Approved' : isCompleted ? '✓ Completed' : '✕ Rejected'}
                           </span>
                         </td>
-                        <td style={{ paddingRight: '24px', textAlign: 'right', verticalAlign: 'middle' }}>
-                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                        <td style={{ paddingRight: '24px', paddingTop: '12px', paddingBottom: '12px', textAlign: 'right', verticalAlign: 'middle' }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 8px', justifyContent: 'flex-end', alignItems: 'center' }}>
                             {isPending && (
                               <>
                                 <button
                                   type="button"
                                   disabled={pwActionLoading === req.id}
-                                  onClick={() => handleApprovePasswordRequest(req.id)}
+                                  onClick={() => setMessageDialog({ request: req, regenerate: false })}
                                   style={{
                                     background: '#10b981',
                                     color: '#ffffff',
@@ -836,13 +841,14 @@ export const AdminUsers = () => {
                                     fontSize: '12px',
                                     fontWeight: 700,
                                     cursor: 'pointer',
+                                    whiteSpace: 'nowrap',
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     gap: '4px',
                                     boxShadow: '0 2px 6px rgba(16,185,129,0.25)'
                                   }}
                                 >
-                                  {pwActionLoading === req.id ? 'Approving...' : '✓ Approve & Send Link'}
+                                  {pwActionLoading === req.id ? 'Approving...' : '✓ Approve'}
                                 </button>
                                 <button
                                   type="button"
@@ -856,7 +862,8 @@ export const AdminUsers = () => {
                                     padding: '6px 12px',
                                     fontSize: '12px',
                                     fontWeight: 600,
-                                    cursor: 'pointer'
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap'
                                   }}
                                 >
                                   ✕ Decline
@@ -865,22 +872,46 @@ export const AdminUsers = () => {
                             )}
 
                             {isApproved && (
-                              <button
-                                type="button"
-                                onClick={() => handleCopyLink(`/reset-password?token=${req.reset_token}`)}
-                                style={{
-                                  background: 'var(--brand-soft)',
-                                  color: 'var(--brand-primary-dark)',
-                                  border: '1px solid var(--brand-soft-border)',
-                                  borderRadius: '8px',
-                                  padding: '5px 12px',
-                                  fontSize: '12px',
-                                  fontWeight: 700,
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                {copiedLink === `/reset-password?token=${req.reset_token}` ? '✓ Copied!' : '📋 Copy Link'}
-                              </button>
+                              <>
+                                <span style={{ flexBasis: '100%', textAlign: 'right', fontSize: '11px', lineHeight: 1.4, color: req.temp_password_active ? '#6b5d56' : '#b91c1c' }}>
+                                  {req.temp_password_active
+                                    ? `Temp password valid until ${new Date(req.temp_password_expires_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`
+                                    : 'Temp password expired'}
+                                </span>
+                                {req.has_message_code && (
+                                  <span style={{ flexBasis: '100%', textAlign: 'right', fontSize: '11px', lineHeight: 1.4, fontWeight: 600, color: req.temp_message_viewed_at ? '#047857' : '#1d4ed8' }}>
+                                    {req.temp_message_viewed_at
+                                      ? `✓ Message opened ${new Date(req.temp_message_viewed_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`
+                                      : req.message_waiting ? '📨 Message sent — not opened yet' : 'Message destroyed (too many wrong codes)'}
+                                  </span>
+                                )}
+                                <button
+                                  type="button"
+                                  disabled={pwActionLoading === req.id}
+                                  onClick={() => setMessageDialog({ request: req, regenerate: true })}
+                                  style={{
+                                    background: 'var(--brand-soft)',
+                                    color: 'var(--brand-primary-dark)',
+                                    border: '1px solid var(--brand-soft-border)',
+                                    borderRadius: '8px',
+                                    padding: '5px 12px',
+                                    fontSize: '12px',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  {pwActionLoading === req.id ? 'Sending...' : req.has_message_code ? '🔄 Send new message' : '🔄 New temporary password'}
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={pwActionLoading === req.id}
+                                  onClick={() => handleRejectPasswordRequest(req.id)}
+                                  style={{ background: '#ffffff', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '8px', padding: '5px 10px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                >
+                                  ✕ Cancel
+                                </button>
+                              </>
                             )}
 
                             {isCompleted && (
@@ -923,40 +954,32 @@ export const AdminUsers = () => {
 
             {/* Profile Details Card */}
             <div style={{ display: 'grid', gap: '10px', fontSize: '13px', background: '#fcf8f6', padding: '16px', borderRadius: '14px', border: '1px solid #eee5e0', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="admin-detail-row">
                 <span style={{ color: '#6b5d56' }}>User ID:</span>
                 <strong>#{selectedUser.id}</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="admin-detail-row">
                 <span style={{ color: '#6b5d56' }}>Full Name:</span>
                 <strong>{selectedUser.name}</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="admin-detail-row">
                 <span style={{ color: '#6b5d56' }}>System Role:</span>
                 <strong style={{ textTransform: 'capitalize', color: 'var(--brand-primary-dark)' }}>{selectedUser.role}</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="admin-detail-row">
                 <span style={{ color: '#6b5d56' }}>Mobile Number:</span>
                 <strong>{selectedUser.phone}</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="admin-detail-row">
                 <span style={{ color: '#6b5d56' }}>Email Address:</span>
                 <strong>{selectedUser.email || 'None'}</strong>
               </div>
-              
-              {/* Password Display Field */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#ffffff', padding: '8px 12px', borderRadius: '8px', border: '1px solid #f0e8e4' }}>
-                <span style={{ color: '#9a3412', fontWeight: 700 }}>🔑 Account Password:</span>
-                <span style={{ fontFamily: 'monospace', background: 'var(--brand-soft)', color: 'var(--brand-primary-deep)', padding: '3px 10px', borderRadius: '6px', fontWeight: 700, fontSize: '14px' }}>
-                  {selectedUser.password || 'Not available'}
-                </span>
-              </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="admin-detail-row">
                 <span style={{ color: '#6b5d56' }}>NID Number:</span>
                 <strong>{selectedUser.nid || 'Not provided'}</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="admin-detail-row">
                 <span style={{ color: '#6b5d56' }}>NID Document:</span>
                 {selectedUser.has_nid_pdf ? (
                   <a
@@ -971,17 +994,17 @@ export const AdminUsers = () => {
                   <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>No PDF document attached</span>
                 )}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="admin-detail-row">
                 <span style={{ color: '#6b5d56' }}>Pickup Address:</span>
                 <strong>{selectedUser.address || 'Not provided'}</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="admin-detail-row">
                 <span style={{ color: '#6b5d56' }}>Verification Status:</span>
                 <strong style={{ color: selectedUser.verification_status === 'verified' ? '#047857' : '#c2410c' }}>
                   {selectedUser.verification_status === 'verified' ? '✓ Verified' : '⏳ Pending Admin Approval'}
                 </strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="admin-detail-row">
                 <span style={{ color: '#6b5d56' }}>Last Active:</span>
                 <strong style={{ fontSize: '13px', color: '#2c2320' }}>
                   {selectedUser.last_active_at || selectedUser.last_login || selectedUser.created_at ? (
@@ -996,7 +1019,7 @@ export const AdminUsers = () => {
                   )}
                 </strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="admin-detail-row">
                 <span style={{ color: '#6b5d56' }}>Inactive since:</span>
                 <strong style={{ fontSize: '14px', color: (selectedUser.inactive_days || 0) >= 90 ? '#dc2626' : '#2c2320' }}>
                   {selectedUser.inactive_days != null ? (
@@ -1095,7 +1118,7 @@ export const AdminUsers = () => {
             {/* Super Admin Password Change Form */}
             <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '14px', padding: '16px' }}>
               <div style={{ fontSize: '13px', fontWeight: 700, color: '#9a3412', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                ⚙️ Change Password for {selectedUser.name}
+                🔑 Reset Password for {selectedUser.name}
               </div>
 
               {passwordResetStatus && (
@@ -1104,23 +1127,17 @@ export const AdminUsers = () => {
                 </div>
               )}
 
-              <form onSubmit={handleAdminResetPassword} style={{ display: 'flex', gap: '10px' }}>
-                <input
-                  type="text"
-                  placeholder="Enter new password"
-                  value={adminNewPassword}
-                  onChange={(e) => setAdminNewPassword(e.target.value)}
-                  required
-                  style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #fdba74', fontSize: '13px', background: '#ffffff', outline: 'none' }}
-                />
-                <button
-                  type="submit"
-                  disabled={passwordResetLoading}
-                  style={{ background: '#ea580c', color: '#ffffff', border: 0, borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                >
-                  {passwordResetLoading ? 'Updating...' : 'Set Password'}
-                </button>
-              </form>
+              <p style={{ fontSize: '12px', color: '#7c2d12', margin: '0 0 10px', lineHeight: 1.5 }}>
+                Admins never choose or see a user's password. This creates a one-time temporary password; the user must set a new password when they log in.
+              </p>
+              <button
+                type="button"
+                onClick={handleAdminResetPassword}
+                disabled={passwordResetLoading}
+                style={{ background: '#ea580c', color: '#ffffff', border: 0, borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: 700, cursor: passwordResetLoading ? 'not-allowed' : 'pointer', opacity: passwordResetLoading ? 0.7 : 1 }}
+              >
+                {passwordResetLoading ? 'Generating...' : '🔑 Generate temporary password'}
+              </button>
             </div>
 
             {/* Action Buttons */}
@@ -1150,6 +1167,14 @@ export const AdminUsers = () => {
           </div>
         </div>
       )}
+      <TempPasswordModal result={tempPasswordResult} onClose={() => setTempPasswordResult(null)} />
+      <SendResetMessageModal
+        request={messageDialog?.request}
+        regenerate={messageDialog?.regenerate}
+        busy={Boolean(messageDialog && pwActionLoading === messageDialog.request.id)}
+        onSend={(note) => handleApprovePasswordRequest(messageDialog.request.id, messageDialog.regenerate, note)}
+        onClose={() => setMessageDialog(null)}
+      />
     </AdminLayout>
   );
 };

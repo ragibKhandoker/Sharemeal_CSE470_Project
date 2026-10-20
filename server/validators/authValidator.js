@@ -18,6 +18,17 @@ const normalizeBangladeshPhone = (value) => {
   return compact;
 };
 
+// Strong password for new accounts: 8+ characters (max 72 bytes for bcrypt)
+// with a small letter, a capital letter, a number and a symbol.
+// Keep in sync with client/src/utils/passwordRules.js.
+const isStrongPassword = (value) => typeof value === 'string'
+  && value.length >= 8
+  && Buffer.byteLength(value, 'utf8') <= 72
+  && /[a-z]/.test(value)
+  && /[A-Z]/.test(value)
+  && /\d/.test(value)
+  && /[^A-Za-z0-9\s]/.test(value);
+
 const signupValidation = [
   body('name')
     .customSanitizer((v) => (typeof v === 'string' ? v.trim() : v))
@@ -36,8 +47,8 @@ const signupValidation = [
     .withMessage('Enter a valid Bangladesh mobile number, such as 01712345678.'),
   body('password')
     .customSanitizer((v) => (typeof v === 'string' ? v.trim() : v))
-    .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters'),
+    .custom((value) => isStrongPassword(value))
+    .withMessage('Please use a strong password: at least 8 characters with small and capital letters, a number and a symbol mixed.'),
   body('role')
     .customSanitizer((v) => (typeof v === 'string' ? v.trim().toLowerCase() : v))
     .isIn(['donor', 'receiver', 'ngo', 'admin'])

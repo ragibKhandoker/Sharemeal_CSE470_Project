@@ -22,7 +22,9 @@ import NgoLogin from '../pages/public/NgoLogin';
 import AdminLogin from '../pages/public/AdminLogin';
 import Stories from '../pages/public/Stories';
 import StoryDetail from '../pages/public/StoryDetail';
-import ResetPassword from '../pages/public/ResetPassword';
+import RequestPasswordReset from '../pages/public/RequestPasswordReset';
+import SetNewPassword from '../pages/public/SetNewPassword';
+import CheckResetMessage from '../pages/public/CheckResetMessage';
 
 // Donor Pages
 import DonorDashboard from '../pages/donor/Dashboard';
@@ -83,6 +85,11 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/login" replace />;
   }
 
+  // Signed in with a temporary password: nothing else until it is replaced.
+  if (user.password_change_required) {
+    return <Navigate to="/set-new-password" replace />;
+  }
+
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
   }
@@ -120,7 +127,12 @@ export const AppRoutes = () => {
       <Route path="/ngo-portal" element={<NgoLogin />} />
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/super-admin/login" element={<AdminLogin />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/request-password-reset" element={<RequestPasswordReset />} />
+      <Route path="/reset-message" element={<CheckResetMessage />} />
+      <Route path="/set-new-password" element={<SetNewPassword />} />
+      {/* Old email-link reset pages now point to the admin-assisted request */}
+      <Route path="/forgot-password" element={<Navigate to="/request-password-reset" replace />} />
+      <Route path="/reset-password" element={<Navigate to="/request-password-reset" replace />} />
 
       {/* Donor Protected Routes */}
       <Route path="/donor/dashboard" element={<ProtectedRoute allowedRoles={['donor']}><DonorDashboard /></ProtectedRoute>} />

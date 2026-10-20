@@ -511,7 +511,7 @@ export const Analytics = () => {
               const percentage = Math.min(100, Math.round((donor.meals / maxVal) * 100));
 
               return (
-                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '150px 1fr 60px', alignItems: 'center', gap: '16px' }}>
+                <div key={idx} style={{ display: 'grid', gridTemplateColumns: 'minmax(80px, 150px) minmax(0, 1fr) auto', alignItems: 'center', gap: '16px' }}>
                   <span
                     title={donor.name}
                     style={{
@@ -555,7 +555,7 @@ export const Analytics = () => {
               const step3 = Math.round(scaleMax * 0.75);
 
               return (
-                <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr 60px', alignItems: 'center', gap: '16px', marginTop: '6px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(80px, 150px) minmax(0, 1fr) auto', alignItems: 'center', gap: '16px', marginTop: '6px' }}>
                   <div />
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#9c8e85' }}>
                     <span>0</span>

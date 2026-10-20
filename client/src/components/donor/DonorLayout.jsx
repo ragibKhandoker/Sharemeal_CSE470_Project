@@ -192,21 +192,42 @@ export const DonorLayout = ({ children, title = 'Dashboard' }) => {
 
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
+  // Mobile drawer: close on Esc or when the window grows to desktop width,
+  // and stop the page behind it from scrolling while it is open.
+  useEffect(() => {
+    if (!isMobileOpen) return undefined;
+    const onKey = (event) => { if (event.key === 'Escape') setIsMobileOpen(false); };
+    const desktop = window.matchMedia('(min-width: 769px)');
+    const onResize = (event) => { if (event.matches) setIsMobileOpen(false); };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', onKey);
+    desktop.addEventListener('change', onResize);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', onKey);
+      desktop.removeEventListener('change', onResize);
+    };
+  }, [isMobileOpen]);
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <style>{`
         @media (max-width: 768px) {
           .donor-sidebar {
             position: fixed !important;
-            left: -256px;
-            transition: left 0.3s ease-in-out;
-            z-index: 2000;
+            left: -272px !important;
+            visibility: hidden;
+            transition: left 0.3s ease-in-out, visibility 0.3s;
+            z-index: 2000 !important;
           }
           .donor-main-viewport {
             margin-left: 0 !important;
           }
           .donor-sidebar.open {
             left: 0 !important;
+            visibility: visible;
+            box-shadow: 8px 0 24px rgba(0, 0, 0, 0.25);
           }
           .mobile-hamburger-btn {
             display: flex !important;

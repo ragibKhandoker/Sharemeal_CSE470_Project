@@ -63,9 +63,49 @@ const walletLimiter = rateLimit({
   }
 });
 
+/**
+ * Password reset limiters (per IP). Request responses never reveal whether an
+ * account exists.
+ */
+const passwordChangeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    status: 429,
+    message: 'Too many password change attempts. Please wait 15 minutes and try again.'
+  }
+});
+
+const resetMessageLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    status: 429,
+    message: 'Too many attempts to open a reset message. Please wait 15 minutes and try again.'
+  }
+});
+
+const adminResetRequestLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    status: 429,
+    message: 'Too many reset requests. Please try again later.'
+  }
+});
+
 module.exports = {
   apiLimiter,
   walletLimiter,
+  passwordChangeLimiter,
+  adminResetRequestLimiter,
+  resetMessageLimiter,
   authLimiter,
   signupLimiter: authLimiter,
   loginLimiter: authLimiter,

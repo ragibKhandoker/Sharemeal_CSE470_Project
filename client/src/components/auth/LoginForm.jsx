@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { API_BASE_URL } from '../../utils/constants';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 
 export const LoginForm = ({ onSubmit, loading, error, title = "Log in", subtitle = "Good to see you again." }) => {
   const [searchParams] = useSearchParams();
@@ -9,39 +8,10 @@ export const LoginForm = ({ onSubmit, loading, error, title = "Log in", subtitle
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Forgot Password Request Modal state
-  const [showForgotModal, setShowForgotModal] = useState(false);
-  const [forgotIdentifier, setForgotIdentifier] = useState(initialIdentifier);
-  const [forgotReason, setForgotReason] = useState('');
-  const [forgotLoading, setForgotLoading] = useState(false);
-  const [forgotSuccessMsg, setForgotSuccessMsg] = useState('');
-  const [forgotErrorMsg, setForgotErrorMsg] = useState('');
-
-  const handleForgotSubmit = async (e) => {
-    e.preventDefault();
-    setForgotErrorMsg('');
-    setForgotSuccessMsg('');
-    setForgotLoading(true);
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/auth/request-reset`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          identifier: forgotIdentifier,
-          reason: forgotReason
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Request failed');
-
-      setForgotSuccessMsg(data.message);
-    } catch (err) {
-      setForgotErrorMsg(err.message || 'Failed to submit request');
-    } finally {
-      setForgotLoading(false);
-    }
-  };
+  // Shown after setting a new password (Set New Password page).
+  const notice = useLocation().state?.notice;
+  // Prefill the reset request page when the user typed an email address.
+  const forgotState = phone.includes('@') ? { email: phone.trim() } : undefined;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -58,6 +28,12 @@ export const LoginForm = ({ onSubmit, loading, error, title = "Log in", subtitle
         <h1>{title}</h1>
         <p>{subtitle}</p>
       </div>
+
+      {notice && !errorMessage && (
+        <div role="status" style={{ marginBottom: 16, padding: '12px 14px', background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#065f46', fontSize: 13, borderRadius: 10, fontWeight: 600 }}>
+          ✅ {notice}
+        </div>
+      )}
 
       {isNotFound ? (
         <div style={{
@@ -115,12 +91,9 @@ export const LoginForm = ({ onSubmit, loading, error, title = "Log in", subtitle
               <div style={{ fontSize: '13px', color: '#be123c', lineHeight: 1.4, marginBottom: '10px' }}>
                 {errorMessage || 'Account exists for this user, but the password entered was incorrect.'}
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setForgotIdentifier(phone);
-                  setShowForgotModal(true);
-                }}
+              <Link
+                to="/request-password-reset"
+                state={forgotState}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -131,12 +104,11 @@ export const LoginForm = ({ onSubmit, loading, error, title = "Log in", subtitle
                   borderRadius: '8px',
                   fontSize: '12px',
                   fontWeight: 700,
-                  border: 0,
-                  cursor: 'pointer'
+                  textDecoration: 'none'
                 }}
               >
                 🔑 Reset Password →
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -199,25 +171,18 @@ export const LoginForm = ({ onSubmit, loading, error, title = "Log in", subtitle
             <input type="checkbox" style={{ accentColor: 'var(--brand-primary-dark)' }} />
             Remember me
           </label>
-          <button
-            type="button"
-            onClick={() => {
-              setShowForgotModal(true);
-              setForgotErrorMsg('');
-              setForgotSuccessMsg('');
-            }}
+          <Link
+            to="/request-password-reset"
+            state={forgotState}
             style={{
-              background: 'transparent',
-              border: 0,
-              padding: 0,
               color: 'var(--brand-primary-dark)',
               fontWeight: 600,
-              cursor: 'pointer',
-              fontSize: '13px'
+              fontSize: '13px',
+              textDecoration: 'none'
             }}
           >
-            Forgot password?
-          </button>
+            Request Password Reset
+          </Link>
         </div>
 
         <button type="submit" disabled={loading} className="auth-primary-btn">
@@ -225,165 +190,19 @@ export const LoginForm = ({ onSubmit, loading, error, title = "Log in", subtitle
         </button>
       </form>
 
+      <p style={{ textAlign: 'center', margin: '12px 0 0', fontSize: 13, color: '#6b5d56' }}>
+        Already requested a reset?{' '}
+        <Link to="/reset-message" state={forgotState} style={{ color: 'var(--brand-primary-dark)', fontWeight: 600, textDecoration: 'none' }}>
+          📨 Check Reset Message
+        </Link>
+      </p>
+
       <p className="auth-switch-text">
         Don't have an account?{' '}
         <Link to="/signup" className="auth-switch-link">
           Sign up free
         </Link>
       </p>
-
-      {/* Forgot Password Super Admin Request Modal */}
-      {showForgotModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.65)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '16px',
-          zIndex: 4000
-        }}>
-          <div style={{
-            width: '100%',
-            maxWidth: '460px',
-            background: '#ffffff',
-            borderRadius: '20px',
-            padding: '28px',
-            boxShadow: '0 20px 50px rgba(0,0,0,0.25)',
-            border: '1px solid rgba(44,35,32,0.08)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#2c2320', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>🔑</span> Request Password Reset Link
-              </h3>
-              <button
-                onClick={() => setShowForgotModal(false)}
-                style={{ background: 'transparent', border: 0, fontSize: '20px', cursor: 'pointer', color: '#888' }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#6b5d56', lineHeight: 1.5 }}>
-              Request Super Admin to approve your password reset link. Once approved, you will receive a secure reset link in your in-app notification panel.
-            </p>
-
-            {forgotErrorMsg && (
-              <div style={{ background: '#fef2f2', color: '#991b1b', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', marginBottom: '14px', border: '1px solid #fecaca' }}>
-                {forgotErrorMsg}
-              </div>
-            )}
-
-            {forgotSuccessMsg ? (
-              <div style={{ textAlign: 'center', padding: '10px 0' }}>
-                <div style={{ background: '#ecfdf5', color: '#047857', padding: '16px', borderRadius: '12px', fontSize: '13px', marginBottom: '16px', border: '1px solid #a7f3d0', fontWeight: 600, lineHeight: 1.5 }}>
-                  🎉 {forgotSuccessMsg}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowForgotModal(false)}
-                  style={{
-                    background: 'var(--brand-primary)',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '10px',
-                    padding: '10px 24px',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Close &amp; Check Notification
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleForgotSubmit}>
-                <div style={{ marginBottom: '14px' }}>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#2c2320', marginBottom: '6px' }}>
-                    Registered Phone or Email <span style={{ color: 'var(--brand-primary)' }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="01712345678 or name@email.com"
-                    value={forgotIdentifier}
-                    onChange={(e) => setForgotIdentifier(e.target.value)}
-                    required
-                    style={{
-                      width: '100%',
-                      height: '42px',
-                      padding: '0 14px',
-                      borderRadius: '10px',
-                      border: '1px solid rgba(44,35,32,0.15)',
-                      fontSize: '13px',
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#2c2320', marginBottom: '6px' }}>
-                    Reason or Note for Admin (Optional)
-                  </label>
-                  <textarea
-                    rows={2}
-                    placeholder="e.g. Forgot my login password, need reset link..."
-                    value={forgotReason}
-                    onChange={(e) => setForgotReason(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px',
-                      borderRadius: '10px',
-                      border: '1px solid rgba(44,35,32,0.15)',
-                      fontSize: '13px',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                      resize: 'none'
-                    }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowForgotModal(false)}
-                    style={{
-                      background: '#f1f5f9',
-                      color: '#475569',
-                      border: 0,
-                      borderRadius: '10px',
-                      padding: '10px 18px',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={forgotLoading}
-                    style={{
-                      background: 'linear-gradient(135deg, var(--brand-primary) 0%, #ea580c 100%)',
-                      color: '#ffffff',
-                      border: 0,
-                      borderRadius: '10px',
-                      padding: '10px 22px',
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      boxShadow: '0 4px 12px rgba(var(--brand-primary-rgb), 0.3)'
-                    }}
-                  >
-                    {forgotLoading ? 'Submitting...' : 'Submit Request to Admin →'}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

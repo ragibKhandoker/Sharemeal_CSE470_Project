@@ -1,7 +1,6 @@
 const db = require('../config/db');
 const { decryptFields } = require('../utils/encryption');
-let bcrypt;
-try { bcrypt = require('bcrypt'); } catch(e) { bcrypt = require('bcryptjs'); }
+const passwordResetService = require('../services/passwordResetService');
 
 /**
  * Admin Controller handles user management, verifications, platform statistics, and bot alerts
@@ -156,7 +155,7 @@ const getAllUsers = async (req, res, next) => {
 const getNgoVerificationQueue = async (req, res, next) => {
   try {
     const result = await db.query(
-      "SELECT id, name, phone, email, address, nid, (nid_pdf IS NOT NULL) AS has_nid_pdf, role, plain_password, verification_status, created_at FROM users WHERE verification_status = 'pending' ORDER BY id DESC"
+      "SELECT id, name, phone, email, address, nid, (nid_pdf IS NOT NULL) AS has_nid_pdf, role, verification_status, created_at FROM users WHERE verification_status = 'pending' ORDER BY id DESC"
     );
     const decryptedQueue = result.rows.map(r => decryptFields(r));
     return res.status(200).json({ message: 'Verification queue retrieved', users: decryptedQueue });
@@ -267,28 +266,39 @@ const verifyNgo = async (req, res, next) => {
   }
 };
 
+
+// Sends the one-time temporary password to the approving admin. It is never
+// stored in plain text and cannot be retrieved again.
+const sendTemporaryPassword = (res, result, message) => res.status(200).json({
+  message: result.messageSent
+    ? `Temporary message sent to ${result.user.name}. They can open it once with their request code; you will not see the password.`
+    : message,
+  messageSent: result.messageSent,
+  ...(result.messageSent ? {} : { temporaryPassword: result.temporaryPassword }),
+  expiresAt: result.expiresAt,
+  user: result.user
+});
+
+const sendResetError = (res, next, error) => {
+  if (error.status) return res.status(error.status).json({ code: error.code, message: error.message });
+  return next(error);
+};
+
+/**
+ * Admin resets a user's password from the Users / NGO panels. Admins never
+ * choose or see a permanent password: a temporary one is generated and the
+ * user must replace it at their next login.
+ */
 const resetUserPasswordByAdmin = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const { newPassword } = req.body;
-
-    if (!newPassword) {
-      return res.status(400).json({ message: 'New password is required' });
+    const userId = Number.parseInt(req.params.id, 10);
+    if (!Number.isSafeInteger(userId) || userId <= 0) {
+      return res.status(400).json({ message: 'Invalid user id' });
     }
-
-    const passHash = await bcrypt.hash(newPassword, 10);
-    const result = await db.query(
-      'UPDATE users SET password_hash = $1, plain_password = $2 WHERE id = $3 RETURNING id, name, email, plain_password',
-      [passHash, newPassword, id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    return res.status(200).json({ message: `Password for ${result.rows[0].name} updated successfully to "${newPassword}"!`, user: result.rows[0] });
+    const result = await passwordResetService.issueTemporaryPasswordForUser({ userId, adminId: req.user.id, note: req.body?.note });
+    return sendTemporaryPassword(res, result, `Temporary password created for ${result.user.name}. Share it privately; they must set a new password when they log in.`);
   } catch (error) {
-    next(error);
+    return sendResetError(res, next, error);
   }
 };
 
@@ -1704,8 +1714,14 @@ const simulateUserInactivity = async (req, res, next) => {
 const getPasswordResetRequests = async (req, res, next) => {
   try {
     const result = await db.query(`
-      SELECT 
-        prr.*,
+      SELECT
+        prr.id, prr.user_id, prr.identifier, prr.reason, prr.status,
+        prr.requested_at, prr.resolved_at, prr.resolved_by, prr.completed_at,
+        prr.temp_password_expires_at,
+        (prr.message_public_key IS NOT NULL) AS has_message_code,
+        (prr.temp_message_ciphertext IS NOT NULL) AS message_waiting,
+        prr.temp_message_sent_at, prr.temp_message_viewed_at,
+        (prr.temp_password_hash IS NOT NULL AND prr.temp_password_expires_at > NOW()) AS temp_password_active,
         u.name AS user_name,
         u.email AS user_email,
         u.phone AS user_phone,
@@ -1731,49 +1747,14 @@ const getPasswordResetRequests = async (req, res, next) => {
  */
 const approvePasswordResetRequest = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const crypto = require('crypto');
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours valid
-
-    const updateRes = await db.query(
-      `UPDATE password_reset_requests
-       SET status = 'approved', reset_token = $1, token_expires_at = $2, resolved_at = NOW(), resolved_by = $3
-       WHERE id = $4
-       RETURNING *;`,
-      [resetToken, expiresAt, req.user.id, id]
-    );
-
-    if (updateRes.rows.length === 0) {
-      return res.status(404).json({ message: 'Request not found' });
+    const requestId = Number.parseInt(req.params.id, 10);
+    if (!Number.isSafeInteger(requestId) || requestId <= 0) {
+      return res.status(400).json({ message: 'Invalid request id' });
     }
-
-    const reqRow = updateRes.rows[0];
-    const resetLink = `/reset-password?token=${resetToken}`;
-
-    // Insert directly into user's in-app notification channel
-    await db.query(
-      `INSERT INTO notifications (user_id, title, message, type, link)
-       VALUES ($1, $2, $3, $4, $5);`,
-      [
-        reqRow.user_id,
-        '🔑 Password Reset Link Approved',
-        'Super Admin approved your password reset request. Click here to reset your password.',
-        'password_reset_link',
-        resetLink
-      ]
-    );
-
-    return res.status(200).json({
-      message: 'Password reset request approved and reset link sent to user notification panel.',
-      resetToken,
-      reset_token: resetToken,
-      resetLink,
-      reset_link: resetLink,
-      request: reqRow
-    });
+    const result = await passwordResetService.issueTemporaryPassword({ requestId, adminId: req.user.id, note: req.body?.note });
+    return sendTemporaryPassword(res, result, 'Request approved. Share the temporary password with the user privately. It is shown only once.');
   } catch (error) {
-    next(error);
+    return sendResetError(res, next, error);
   }
 };
 
@@ -1787,14 +1768,16 @@ const rejectPasswordResetRequest = async (req, res, next) => {
 
     const updateRes = await db.query(
       `UPDATE password_reset_requests
-       SET status = 'rejected', resolved_at = NOW(), resolved_by = $1
-       WHERE id = $2
-       RETURNING *;`,
+       SET status = 'rejected', reset_token = NULL, temp_password_hash = NULL, temp_message_ciphertext = NULL,
+           temp_password_expires_at = LEAST(temp_password_expires_at, NOW()),
+           resolved_at = NOW(), resolved_by = $1
+       WHERE id = $2 AND status IN ('pending', 'approved')
+       RETURNING id, user_id, status, resolved_at;`,
       [req.user.id, id]
     );
 
     if (updateRes.rows.length === 0) {
-      return res.status(404).json({ message: 'Request not found' });
+      return res.status(404).json({ message: 'Request not found or already completed' });
     }
 
     const reqRow = updateRes.rows[0];

@@ -8,7 +8,7 @@ import AppRoutes from './routes/AppRoutes';
 
 const AppLayout = () => {
   const location = useLocation();
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/ngo/login' || location.pathname === '/ngo-portal';
+  const isAuthPage = ['/login', '/signup', '/ngo/login', '/ngo-portal', '/request-password-reset', '/reset-message', '/set-new-password'].includes(location.pathname);
   const isAdminPage = location.pathname.startsWith('/admin') || location.pathname.startsWith('/super-admin');
   const isDashboardPage = location.pathname.startsWith('/donor') || location.pathname.startsWith('/ngo') || location.pathname.startsWith('/receiver');
   const isHomePage = location.pathname === '/';

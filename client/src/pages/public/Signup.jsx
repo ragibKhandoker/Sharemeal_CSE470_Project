@@ -68,7 +68,7 @@ export const Signup = () => {
       />
 
       {/* Right Form Panel */}
-      <div className="auth-form-panel">
+      <div className={`auth-form-panel${step === 2 ? ' auth-form-panel--signup' : ''}`}>
         {step === 1 ? (
           <Link to="/" className="auth-back-link">
             ← Back to home

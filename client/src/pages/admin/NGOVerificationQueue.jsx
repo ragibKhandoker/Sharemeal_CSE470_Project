@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { useAuth } from '../../context/AuthContext';
+import TempPasswordModal from '../../components/admin/TempPasswordModal';
 import { API_BASE_URL } from '../../utils/constants';
 import '../../App.css';
 
@@ -14,7 +15,7 @@ export const NGOVerificationQueue = () => {
 
   // Selected User Profile Pop-up Modal state
   const [selectedUser, setSelectedUser] = useState(null);
-  const [adminNewPassword, setAdminNewPassword] = useState('');
+  const [tempPasswordResult, setTempPasswordResult] = useState(null);
   const [passwordResetStatus, setPasswordResetStatus] = useState('');
   const [passwordResetLoading, setPasswordResetLoading] = useState(false);
 
@@ -58,9 +59,9 @@ export const NGOVerificationQueue = () => {
     }
   };
 
-  const handleAdminResetPassword = async (e) => {
-    e.preventDefault();
-    if (!selectedUser || !adminNewPassword) return;
+  const handleAdminResetPassword = async () => {
+    if (!selectedUser || passwordResetLoading) return;
+    if (!window.confirm(`Create a temporary password for ${selectedUser.name}? Any earlier temporary password stops working.`)) return;
 
     setPasswordResetLoading(true);
     setPasswordResetStatus('');
@@ -71,16 +72,13 @@ export const NGOVerificationQueue = () => {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ newPassword: adminNewPassword })
+        }
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Password reset failed');
 
-      setPasswordResetStatus(`✅ Password updated to "${adminNewPassword}"!`);
-      setSelectedUser({ ...selectedUser, password: adminNewPassword });
-      setAdminNewPassword('');
-      await fetchUsers();
+      if (!data.messageSent) setTempPasswordResult(data);
+      setPasswordResetStatus(`✅ ${data.message}`);
     } catch (err) {
       setPasswordResetStatus(`❌ ${err.message}`);
     } finally {
@@ -89,7 +87,7 @@ export const NGOVerificationQueue = () => {
   };
 
   // Filter ONLY for NGO Admin, Collection Staff, Distributor Staff, and NGO role
-  const ngoRoles = ['ngo', 'ngo_admin', 'collection_staff', 'distributor_staff', 'ngo admin', 'collection staff', 'distributor staff'];
+  const ngoRoles =['ngo', 'ngo_admin', 'collection_staff', 'distributor_staff', 'ngo admin', 'collection staff', 'distributor staff'];
 
   const filteredNgoUsers = users.filter((u) => {
     const isNgoRole = ngoRoles.includes((u.role || '').toLowerCase()) || (u.role || '').toLowerCase().includes('ngo') || (u.role || '').toLowerCase().includes('staff');
@@ -288,7 +286,6 @@ export const NGOVerificationQueue = () => {
                             onClick={() => {
                               setSelectedUser(user);
                               setPasswordResetStatus('');
-                              setAdminNewPassword('');
                             }}
                             style={{
                               background: 'transparent',
@@ -363,35 +360,28 @@ export const NGOVerificationQueue = () => {
             </div>
 
             <div style={{ display: 'grid', gap: '10px', fontSize: '13px', background: '#fcf8f6', padding: '16px', borderRadius: '14px', border: '1px solid #eee5e0', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="admin-detail-row">
                 <span style={{ color: '#6b5d56' }}>User ID:</span>
                 <strong>#{selectedUser.id}</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="admin-detail-row">
                 <span style={{ color: '#6b5d56' }}>Name / Org:</span>
                 <strong>{selectedUser.name}</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="admin-detail-row">
                 <span style={{ color: '#6b5d56' }}>NGO Role:</span>
                 <strong style={{ textTransform: 'capitalize', color: '#227a55' }}>{selectedUser.role}</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="admin-detail-row">
                 <span style={{ color: '#6b5d56' }}>Mobile Number:</span>
                 <strong>{selectedUser.phone}</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="admin-detail-row">
                 <span style={{ color: '#6b5d56' }}>Email Address:</span>
                 <strong>{selectedUser.email || 'None'}</strong>
               </div>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#ffffff', padding: '8px 12px', borderRadius: '8px', border: '1px solid #f0e8e4' }}>
-                <span style={{ color: '#9a3412', fontWeight: 700 }}>🔑 Account Password:</span>
-                <span style={{ fontFamily: 'monospace', background: 'var(--brand-soft)', color: 'var(--brand-primary-deep)', padding: '3px 10px', borderRadius: '6px', fontWeight: 700, fontSize: '14px' }}>
-                  {selectedUser.password || 'Not available'}
-                </span>
-              </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="admin-detail-row">
                 <span style={{ color: '#6b5d56' }}>Verification Status:</span>
                 <strong style={{ color: selectedUser.verification_status === 'verified' ? '#047857' : '#c2410c' }}>
                   {selectedUser.verification_status === 'verified' ? '✓ Verified' : '⏳ Pending'}
@@ -401,7 +391,7 @@ export const NGOVerificationQueue = () => {
 
             <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '14px', padding: '16px' }}>
               <div style={{ fontSize: '13px', fontWeight: 700, color: '#9a3412', marginBottom: '6px' }}>
-                ⚙️ Change Password for {selectedUser.name}
+                🔑 Reset Password for {selectedUser.name}
               </div>
 
               {passwordResetStatus && (
@@ -410,23 +400,17 @@ export const NGOVerificationQueue = () => {
                 </div>
               )}
 
-              <form onSubmit={handleAdminResetPassword} style={{ display: 'flex', gap: '10px' }}>
-                <input
-                  type="text"
-                  placeholder="Enter new password"
-                  value={adminNewPassword}
-                  onChange={(e) => setAdminNewPassword(e.target.value)}
-                  required
-                  style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #fdba74', fontSize: '13px', background: '#ffffff', outline: 'none' }}
-                />
-                <button
-                  type="submit"
-                  disabled={passwordResetLoading}
-                  style={{ background: '#ea580c', color: '#ffffff', border: 0, borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                >
-                  {passwordResetLoading ? 'Updating...' : 'Set Password'}
-                </button>
-              </form>
+              <p style={{ fontSize: '12px', color: '#7c2d12', margin: '0 0 10px', lineHeight: 1.5 }}>
+                Admins never choose or see a user's password. This creates a one-time temporary password; the user must set a new password when they log in.
+              </p>
+              <button
+                type="button"
+                onClick={handleAdminResetPassword}
+                disabled={passwordResetLoading}
+                style={{ background: '#ea580c', color: '#ffffff', border: 0, borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: 700, cursor: passwordResetLoading ? 'not-allowed' : 'pointer', opacity: passwordResetLoading ? 0.7 : 1 }}
+              >
+                {passwordResetLoading ? 'Generating...' : '🔑 Generate temporary password'}
+              </button>
             </div>
 
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
@@ -455,6 +439,7 @@ export const NGOVerificationQueue = () => {
           </div>
         </div>
       )}
+      <TempPasswordModal result={tempPasswordResult} onClose={() => setTempPasswordResult(null)} />
     </AdminLayout>
   );
 };

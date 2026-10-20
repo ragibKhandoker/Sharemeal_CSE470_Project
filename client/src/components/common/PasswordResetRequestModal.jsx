@@ -5,6 +5,7 @@ export const PasswordResetRequestModal = ({ isOpen, onClose, user, token }) => {
   const [reason, setReason] = useState('Routine security update');
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [requestCode, setRequestCode] = useState('');
   const [error, setError] = useState('');
 
   if (!isOpen) return null;
@@ -33,6 +34,7 @@ export const PasswordResetRequestModal = ({ isOpen, onClose, user, token }) => {
         throw new Error(data.message || 'Failed to submit request');
       }
 
+      setRequestCode(data.requestCode || '');
       setSuccess(true);
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
@@ -43,6 +45,7 @@ export const PasswordResetRequestModal = ({ isOpen, onClose, user, token }) => {
 
   const handleClose = () => {
     setSuccess(false);
+    setRequestCode('');
     setError('');
     onClose();
   };
@@ -120,8 +123,15 @@ export const PasswordResetRequestModal = ({ isOpen, onClose, user, token }) => {
             </h3>
             <p style={{ margin: '0 0 20px', fontSize: '14px', color: '#6b5d56', lineHeight: '1.6' }}>
               Your request for a password reset/change has been dispatched to Super Admin.
-              Once approved, a direct password reset link will arrive in your <strong>Notification Channel</strong> (🔔).
+              Once approved, open <strong>Check Reset Message</strong> on the login page with your email and the code below to get your <strong>temporary password</strong>.
             </p>
+            {requestCode && (
+              <div style={{ border: '2px dashed #f59e0b', background: '#fffbeb', borderRadius: '12px', padding: '12px', margin: '0 0 18px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#92400e' }}>YOUR SECRET REQUEST CODE (shown once)</div>
+                <code style={{ display: 'block', fontSize: '22px', fontWeight: 900, letterSpacing: '2px', color: '#1c1917', margin: '6px 0' }}>{requestCode}</code>
+                <div style={{ fontSize: '12px', color: '#78350f' }}>Write it down now. Don&apos;t share it with anyone.</div>
+              </div>
+            )}
             <button
               onClick={handleClose}
               style={{
@@ -178,7 +188,7 @@ export const PasswordResetRequestModal = ({ isOpen, onClose, user, token }) => {
                 marginBottom: '20px'
               }}
             >
-              ℹ️ In ShareMeal, password modifications are secured via Super Admin verification. After approval, a reset link will be sent directly to your <strong>Notification Channel</strong>.
+              ℹ️ In ShareMeal, password modifications are secured via Super Admin verification. After approval, the admin team shares a one-time temporary password with you privately; you then choose a new password.
             </div>
 
             {error && (

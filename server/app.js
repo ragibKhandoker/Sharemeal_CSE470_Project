@@ -46,6 +46,13 @@ const walletRoutes = require('./routes/walletRoutes');
 
 const app = express();
 
+// Behind a reverse proxy (e.g. Vercel, Nginx) set TRUST_PROXY so rate limits
+// see each client's real IP instead of the proxy's.
+if (process.env.TRUST_PROXY) {
+  const hops = Number(process.env.TRUST_PROXY);
+  app.set('trust proxy', Number.isInteger(hops) ? hops : process.env.TRUST_PROXY);
+}
+
 // Core Middlewares
 app.use(cors());
 app.use(express.json());

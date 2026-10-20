@@ -19,6 +19,8 @@ router.get('/notifications', adminController.getAdminNotifications);
 router.get('/food-threads', adminController.getFoodPostLifecycleThreads);
 router.get('/password-requests', adminController.getPasswordResetRequests);
 router.post('/password-requests/:id/approve', adminController.approvePasswordResetRequest);
+// Generates a fresh temporary password for an approved request (the old one stops working).
+router.post('/password-requests/:id/regenerate', adminController.approvePasswordResetRequest);
 router.post('/password-requests/:id/reject', adminController.rejectPasswordResetRequest);
 router.get('/bot-alerts', adminController.getBotAlerts);
 router.post('/bot-alerts/:id/action', adminController.handleBotAlertAction);

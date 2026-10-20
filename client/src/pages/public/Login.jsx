@@ -21,7 +21,9 @@ export const Login = () => {
       const data = await login(credentials);
       const role = data.user?.role || 'donor';
 
-      if (redirectTarget) {
+      if (data.user?.password_change_required) {
+        navigate('/set-new-password');
+      } else if (redirectTarget) {
         navigate(redirectTarget);
       } else if (role === 'donor') {
         navigate('/donor/profile');

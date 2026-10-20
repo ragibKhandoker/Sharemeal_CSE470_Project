@@ -61,7 +61,7 @@ export const HelpCentre = () => {
       id: 7,
       cat: 'account',
       q: 'What should I do if I forget my password or get locked out?',
-      a: 'Click "Forgot Password?" on the Login screen. Enter your registered email address or phone number, and a secure reset code will be sent to recover your account.'
+      a: 'Click "Request Password Reset" on the Login screen, enter your registered email and a short reason, and save the secret request code you are shown. After an admin approves it, open "Check Reset Message" on the Login screen with your email and code to read your temporary password (the message opens only once). Log in with it and set a new password straight away.'
     },
     {
       id: 8,

@@ -611,7 +611,7 @@ export const FoodPostThreads = () => {
             </button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 410px) 1fr', gap: '24px', alignItems: 'start' }}>
+          <div className="admin-threads-split" style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 410px) 1fr', gap: '24px', alignItems: 'start' }}>
             
             {/* Left Column: List of Food Posts */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

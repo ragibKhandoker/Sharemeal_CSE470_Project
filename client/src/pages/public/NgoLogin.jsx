@@ -16,7 +16,9 @@ export const NgoLogin = () => {
 
     try {
       const data = await login(credentials);
-      if (data.user?.role === 'ngo' || data.user?.role === 'admin') {
+      if (data.user?.password_change_required) {
+        navigate('/set-new-password');
+      } else if (data.user?.role === 'ngo' || data.user?.role === 'admin') {
         navigate('/ngo/dashboard');
       } else {
         setError('This portal is restricted to authorized NGO partners.');

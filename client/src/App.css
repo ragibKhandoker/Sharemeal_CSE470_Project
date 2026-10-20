@@ -1064,3 +1064,87 @@ img, svg, video, canvas {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Admin "View user" details: label on the left, value on the right, with a
+   clear gap so long values (email, address) never run into the label. */
+.admin-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed #eadfd8;
+  line-height: 1.45;
+}
+.admin-detail-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.admin-detail-row > :first-child {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.admin-detail-row > :last-child {
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 480px) {
+  .admin-detail-row {
+    flex-direction: column;
+    gap: 2px;
+  }
+  .admin-detail-row > :last-child {
+    text-align: left;
+  }
+}
+
+/* Signup "Your details" step: wider panel, two fields per row and tighter
+   spacing so the whole form fits on one screen on desktop. */
+.auth-form-panel--signup {
+  max-width: 680px;
+  padding: 24px 40px;
+}
+.auth-form-panel--signup .auth-back-link {
+  margin-bottom: 10px;
+}
+.auth-form-panel--signup .auth-stepper {
+  margin-bottom: 12px;
+}
+.auth-form-panel--signup .auth-form-header h1 {
+  font-size: 24px;
+}
+.auth-form-panel--signup .auth-form-header p {
+  margin-bottom: 10px;
+}
+.auth-form-panel--signup .auth-grid-2 {
+  column-gap: 14px;
+  row-gap: 0;
+}
+.auth-form-panel--signup .auth-input-group {
+  margin-bottom: 10px;
+  min-width: 0;
+}
+.auth-form-panel--signup .auth-primary-btn {
+  margin-top: 8px;
+}
+.auth-form-panel--signup .auth-switch-text {
+  margin-top: 10px;
+}
+.signup-field-hint {
+  margin-top: -2px;
+  font-size: 11.5px;
+  color: #786d66;
+}
+@media (max-width: 900px) {
+  .auth-form-panel--signup {
+    padding: 20px 16px;
+  }
+}
+
+/* Admin food threads: list and detail stack on tablets/phones. */
+@media (max-width: 900px) {
+  .admin-threads-split {
+    grid-template-columns: 1fr !important;
+  }
+}

@@ -2,8 +2,14 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const authController = require('../controllers/authController');
-const { protect, optionalAuth } = require('../middleware/authMiddleware');
-const { signupLimiter, loginLimiter } = require('../middleware/rateLimiter');
+const { protect, protectAllowingPasswordChange, optionalAuth } = require('../middleware/authMiddleware');
+const {
+  signupLimiter,
+  loginLimiter,
+  passwordChangeLimiter,
+  adminResetRequestLimiter,
+  resetMessageLimiter
+} = require('../middleware/rateLimiter');
 const { validateRegister, validateLogin } = require('../validators/authValidator');
 
 const upload = multer({
@@ -37,13 +43,10 @@ router.post('/signup', signupLimiter, handleUpload, validateRegister, authContro
 router.post('/register', signupLimiter, handleUpload, validateRegister, authController.register);
 router.post('/login', loginLimiter, validateLogin, authController.login);
 router.post('/google', authController.googleAuth);
-router.post('/forgot-password', authController.forgotPassword);
-router.post('/reset-password', authController.resetPassword);
-router.post('/request-reset', optionalAuth, authController.requestPasswordReset);
-router.get('/verify-reset-token', authController.verifyResetToken);
-router.post('/reset-with-token', authController.resetPasswordWithToken);
-router.post('/reset-password-with-token', authController.resetPasswordWithToken);
-router.get('/me', protect, authController.getMe);
+router.post('/request-reset', adminResetRequestLimiter, optionalAuth, authController.requestPasswordReset);
+router.post('/reset-message', resetMessageLimiter, authController.getResetMessage);
+router.post('/set-new-password', passwordChangeLimiter, protectAllowingPasswordChange, authController.setNewPassword);
+router.get('/me', protectAllowingPasswordChange, authController.getMe);
 router.put('/profile', protect, handleUpload, authController.updateProfile);
 router.patch('/verify/:id', protect, authController.verifyUser);
 

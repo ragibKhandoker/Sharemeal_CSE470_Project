@@ -15,8 +15,8 @@ async function seedNgo() {
       const hashedPassword = await bcrypt.hash('11223344', salt);
 
       const insertUser = await db.query(
-        `INSERT INTO users (name, email, phone, role, password_hash, plain_password, verification_status, address)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `INSERT INTO users (name, email, phone, role, password_hash, verification_status, address)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING id, name, email, role`,
         [
           'Anisur Rahman',
@@ -24,7 +24,6 @@ async function seedNgo() {
           '01788776655',
           'ngo',
           hashedPassword,
-          '11223344',
           'verified',
           'Road 27, Dhanmondi, Dhaka'
         ]
