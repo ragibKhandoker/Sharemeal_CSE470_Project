@@ -49,7 +49,7 @@ Food waste and food insecurity coexist in our communities. Millions of meals are
 
 | Name | Engineering Role | Actual Contribution & Leadership |
 | :--- | :--- | :--- |
-| **Hridoy Islam** | **Project Lead & Lead Full-Stack Architect** Primary Contributor |  Built the complete end-to-end platform across all 4 portals (Donor, Receiver, NGO, Admin), designed the PostgreSQL database schema (19 migrations), Leaflet Map engine, Handover PIN verification system, AES-256 field encryption, GitHub Actions CI/CD, and Trust & Support portal. |
+| **Hridoy Islam** | Project Lead & Primary Contributor |  Built the complete end-to-end platform across all 4 portals (Donor, Receiver, NGO, Admin), designed the PostgreSQL database schema (19 migrations), Leaflet Map engine, Handover PIN verification system, AES-256 field encryption, GitHub Actions CI/CD, and Trust & Support portal. |
 | **Maliha Dil Tasnim Taky (Taky)** | Frontend & Security Contributor  | Assisted with Rate Limiting integration, State Machine testing, moderation report forms, and UI styling polish. |
 | **Khandoker Md. Ragib Ahsan (Ragib)** | Backend Contributor  | Assisted with notification triggers, serving log testing, and collection approval flow testing. |
 | **Tausif Hasan Kibria (Tousif)** | QA & Security Contributor  | Assisted with mobile responsive checks, CAPTCHA verification testing, and route security audit. |
