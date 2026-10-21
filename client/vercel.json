@@ -7,11 +7,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://sharemeal-gae6.onrender.com/api/:path*"
+      "destination": "https://sharemeal-cse470-project.onrender.com/api/:path*"
     },
     {
       "source": "/uploads/:path*",
-      "destination": "https://sharemeal-gae6.onrender.com/uploads/:path*"
+      "destination": "https://sharemeal-cse470-project.onrender.com/uploads/:path*"
     },
     {
       "source": "/(.*)",
