@@ -49,20 +49,17 @@ Food waste and food insecurity coexist in our communities. Millions of meals are
 
 | Name | Engineering Role | Actual Contribution & Leadership |
 | :--- | :--- | :--- |
-| **Hridoy Islam** | **Project Lead & Lead Full-Stack Architect** *(Primary Contributor — 96+ commits)* | **Full-Stack Architecture & 85%+ Codebase Implementation:** Built the complete end-to-end platform across all 4 portals (Donor, Receiver, NGO, Admin), designed the PostgreSQL database schema (19 migrations), Leaflet Map engine, Handover PIN verification system, AES-256 field encryption, GitHub Actions CI/CD, and Trust & Support portal. |
-| **Maliha Dil Tasnim Taky (Taky)** | Frontend & Security Contributor *(54 commits)* | Assisted with Rate Limiting integration, State Machine testing, moderation report forms, and UI styling polish. |
-| **Khandoker Md. Ragib Ahsan (Ragib)** | Backend Contributor *(5 commits)* | Assisted with notification triggers, serving log testing, and collection approval flow testing. |
-| **Tausif Hasan Kibria (Tousif)** | QA & Security Contributor *(1 commit)* | Assisted with mobile responsive checks, CAPTCHA verification testing, and route security audit. |
-
-> 📌 **Note on Academic Rubric vs. Production Implementation:**
-> In the CSE470 academic sprint task sheet, items were formally partitioned across all 4 group members on paper for grading distribution. In actual software engineering practice (as proven by the Git commit logs), **Hridoy Islam** personally coded and shipped the complete full-stack architecture, API controllers, React frontend, database migrations, security modules, and DevOps automation.
+| **Hridoy Islam** | **Project Lead & Lead Full-Stack Architect** Primary Contributor |  Built the complete end-to-end platform across all 4 portals (Donor, Receiver, NGO, Admin), designed the PostgreSQL database schema (19 migrations), Leaflet Map engine, Handover PIN verification system, AES-256 field encryption, GitHub Actions CI/CD, and Trust & Support portal. |
+| **Maliha Dil Tasnim Taky (Taky)** | Frontend & Security Contributor  | Assisted with Rate Limiting integration, State Machine testing, moderation report forms, and UI styling polish. |
+| **Khandoker Md. Ragib Ahsan (Ragib)** | Backend Contributor  | Assisted with notification triggers, serving log testing, and collection approval flow testing. |
+| **Tausif Hasan Kibria (Tousif)** | QA & Security Contributor  | Assisted with mobile responsive checks, CAPTCHA verification testing, and route security audit. |
 
 ---
 
 ## 🚀 Sprint-by-Sprint Task Breakdown (Course Plan)
 
 ### 🔹 Sprint 1 (Week 1): Core Setup and Donor Side
-* **👤 Hridoy Islam — Items 1, 5 (Lead Implementation)**
+* **👤 Hridoy Islam — Items 1, 5 )**
   * `1:` **User Authentication and Verification** — Signup & login system for donors and receivers, phone/NID verification.
   * `5:` **Password Encryption** — Password hashing using `bcrypt`, ensuring plain-text passwords are never stored.
 * **👤 Ragib (Khandoker Md. Ragib Ahsan) — Items 2, 3**
