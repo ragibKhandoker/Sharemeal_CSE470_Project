@@ -1,0 +1,11 @@
+# Vercel only builds the React client (see vercel.json); the API runs on Render.
+# Keep secrets and server-only files out of the upload.
+**/.env
+**/.env.*
+!**/.env.example
+node_modules
+**/node_modules
+server/uploads
+server/public
+*.pdf
+.git

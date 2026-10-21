@@ -27,3 +27,8 @@ server/uploads/*
 !server/uploads/.gitkeep
 server/uploads/receipts/*
 !server/uploads/receipts/.gitkeep
+
+.vercel
+.env*
+!.env.example
+!**/.env.example
