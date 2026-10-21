@@ -10,6 +10,12 @@
 > **ShareMeal** is a full-stack, community-driven food donation platform engineered to bridge the gap between surplus food providers (restaurants, caterers, households) and vulnerable communities through verified NGOs and anonymous receiver channels.
 
 ---
+## 🔗 Live URL
+
+- **Website (Frontend):** https://sharemeal-cse-470-project.vercel.app
+- **Backend API (Render):** https://sharemeal-cse470-project.onrender.com
+
+---
 
 ## 📑 Table of Contents
 - [Project Overview](#-project-overview)
