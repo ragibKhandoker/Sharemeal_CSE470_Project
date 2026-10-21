@@ -168,6 +168,15 @@ const getIncomingFoodRequests = async (req, res, next) => {
   }
 };
 
+// NGO pickup requests (receiver is an NGO account) move through their own
+// pipeline: picked up -> at hub -> posted for distribution. The receiver-side
+// actions below must not complete them, or the food never reaches receivers.
+const NGO_PICKUP_CODE_MESSAGE = 'This code belongs to an NGO pickup from a donor, not a receiver request. Manage it from Collection Requests.';
+const isNgoAccount = async (userId) => {
+  const result = await db.query('SELECT role::text AS role FROM users WHERE id = $1', [userId]);
+  return result.rows[0]?.role === 'ngo';
+};
+
 const updateFoodRequestStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -181,6 +190,9 @@ const updateFoodRequestStatus = async (req, res, next) => {
     const existingRequest = await foodRequestModel.findById(id);
     if (!existingRequest) {
       return res.status(404).json({ message: 'Food request not found' });
+    }
+    if (await isNgoAccount(existingRequest.receiver_id)) {
+      return res.status(409).json({ message: 'This is an NGO pickup request. Move it forward from Collection Requests (picked up, at hub, post for distribution).' });
     }
 
     // Auth check: donor, receiver, ngo, or super_admin
@@ -266,6 +278,9 @@ const verifyPickupCode = async (req, res, next) => {
     const request = await foodRequestModel.findByPickupCode(cleanCode);
     if (!request) {
       return res.status(404).json({ message: `Invalid pickup code "${cleanCode}". No matching request found.` });
+    }
+    if (request.receiver_role === 'ngo') {
+      return res.status(409).json({ message: NGO_PICKUP_CODE_MESSAGE });
     }
 
     // Auth check: post owner, ngo staff, or super admin
@@ -665,6 +680,9 @@ const lookupPickupCode = async (req, res, next) => {
         message: `Invalid pickup code "${cleanCode}". No matching receiver request found in system.`
       });
     }
+    if (request.receiver_role === 'ngo') {
+      return res.status(409).json({ message: NGO_PICKUP_CODE_MESSAGE });
+    }
 
     if (request.status === 'fulfilled') {
       return res.status(400).json({
@@ -783,6 +801,9 @@ const handoverPackets = async (req, res, next) => {
       return res.status(400).json({
         message: `Invalid pickup code "${cleanCode}". Without a valid matching code, food cannot be handed over.`
       });
+    }
+    if (matchedReceiverReq.receiver_role === 'ngo') {
+      return res.status(409).json({ message: NGO_PICKUP_CODE_MESSAGE });
     }
 
     if (matchedReceiverReq.status === 'fulfilled') {

@@ -224,10 +224,13 @@ const findIncomingForNgo = async (ngoUserId) => {
     FROM food_requests fr
     JOIN food_posts fp ON fr.food_post_id = fp.id
     JOIN users u ON fr.receiver_id = u.id
-    WHERE ($1::integer IS NULL 
-       OR fr.ngo_user_id = $1 
-       OR fp.distribution_ngo_user_id = $1 
+    WHERE ($1::integer IS NULL
+       OR fr.ngo_user_id = $1
+       OR fp.distribution_ngo_user_id = $1
        OR (fr.ngo_user_id IS NULL AND fp.distribution_ngo_user_id IS NULL))
+      -- Receiver requests only: NGO pickup requests (receiver is an NGO
+      -- account) have their own pipeline on the Collection Requests page.
+      AND u.role::text <> 'ngo'
     ORDER BY fr.created_at DESC;
   `;
   const result = await db.query(query, [ngoUserId]);
@@ -476,7 +479,8 @@ const findByPickupCode = async (pickupCode) => {
       fp.quantity::integer AS post_quantity,
       fp.donor_id,
       u.name AS receiver_name,
-      u.phone AS receiver_phone
+      u.phone AS receiver_phone,
+      u.role::text AS receiver_role
     FROM food_requests fr
     JOIN food_posts fp ON fr.food_post_id = fp.id
     JOIN users u ON fr.receiver_id = u.id
