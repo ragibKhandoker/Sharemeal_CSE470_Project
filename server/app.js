@@ -2,10 +2,14 @@ const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
 
-// Auto-provision server/.env from .env.example if missing
+// Hosting platforms (Render, Vercel) set their own environment variables and
+// have no server/.env; never fill it from the placeholder template there.
+const isHosted = Boolean(process.env.RENDER || process.env.VERCEL) || process.env.NODE_ENV === 'production';
+
+// Auto-provision server/.env from .env.example if missing (local development only)
 const envPath = path.join(__dirname, '.env');
 const envExamplePath = path.join(__dirname, '.env.example');
-if (!fs.existsSync(envPath) && fs.existsSync(envExamplePath)) {
+if (!isHosted && !fs.existsSync(envPath) && fs.existsSync(envExamplePath)) {
   try {
     fs.copyFileSync(envExamplePath, envPath);
     console.log('⚡ [Auto-Setup] Automatically created server/.env from .env.example with pre-configured cloud database.');
@@ -46,11 +50,14 @@ const walletRoutes = require('./routes/walletRoutes');
 
 const app = express();
 
-// Behind a reverse proxy (e.g. Vercel, Nginx) set TRUST_PROXY so rate limits
-// see each client's real IP instead of the proxy's.
+// Behind a reverse proxy (Render, Vercel, Nginx) Express must trust it so rate
+// limits see each client's real IP (X-Forwarded-For) instead of the proxy's.
+// TRUST_PROXY overrides; on Render/Vercel one proxy hop is trusted by default.
 if (process.env.TRUST_PROXY) {
   const hops = Number(process.env.TRUST_PROXY);
   app.set('trust proxy', Number.isInteger(hops) ? hops : process.env.TRUST_PROXY);
+} else if (process.env.RENDER || process.env.VERCEL) {
+  app.set('trust proxy', 1);
 }
 
 // Core Middlewares

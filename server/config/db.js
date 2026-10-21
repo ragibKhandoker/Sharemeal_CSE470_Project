@@ -7,9 +7,22 @@ require('dotenv').config();
 
 let activeUrl = (process.env.DATABASE_URL || '').trim();
 
+const onHost = Boolean(process.env.RENDER || process.env.VERCEL);
+const whereToSet = onHost
+  ? 'your hosting dashboard (Render: Service -> Environment -> DATABASE_URL)'
+  : 'server/.env';
+
 if (!activeUrl) {
   console.error('❌ ERROR: DATABASE_URL is not defined in environment variables.');
-  console.error('👉 Please configure DATABASE_URL in server/.env file.');
+  console.error(`👉 Please configure DATABASE_URL in ${whereToSet}.`);
+  process.exit(1);
+}
+
+// The template in .env.example is not a real database; fail clearly instead
+// of with a confusing "tenant/user ... not found" error on every request.
+if (/your_project_id|\[YOUR_PASSWORD\]|your_db_password/i.test(activeUrl)) {
+  console.error('❌ ERROR: DATABASE_URL still contains the placeholder from .env.example.');
+  console.error(`👉 Set the real Supabase connection string (Supabase -> Connect -> Session pooler) in ${whereToSet}.`);
   process.exit(1);
 }
 
